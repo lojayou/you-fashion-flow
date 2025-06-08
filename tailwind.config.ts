@@ -61,6 +61,24 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				copper: {
+					50: 'hsl(var(--copper-50))',
+					100: 'hsl(var(--copper-100))',
+					200: 'hsl(var(--copper-200))',
+					300: 'hsl(var(--copper-300))',
+					400: 'hsl(var(--copper-400))',
+					500: 'hsl(var(--copper-500))',
+					600: 'hsl(var(--copper-600))',
+					700: 'hsl(var(--copper-700))',
+					800: 'hsl(var(--copper-800))',
+					900: 'hsl(var(--copper-900))',
+				},
+				fashion: {
+					rose: 'hsl(var(--fashion-rose))',
+					pink: 'hsl(var(--fashion-pink))',
+					purple: 'hsl(var(--fashion-purple))',
+					cream: 'hsl(var(--fashion-cream))',
 				}
 			},
 			borderRadius: {
