@@ -1,5 +1,7 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { TimeFilter } from '@/components/TimeFilter'
 import { 
   ShoppingBag, 
   Package, 
@@ -54,12 +56,20 @@ export default function Dashboard() {
     }
   ]
 
+  const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
+    console.log('Period changed to:', period, customDates)
+    // Aqui você implementaria a lógica para filtrar os dados baseado no período
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral do sistema You Fashion & Style</p>
       </div>
+
+      {/* Time Filter */}
+      <TimeFilter onPeriodChange={handlePeriodChange} />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

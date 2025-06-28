@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { TimeFilter } from '@/components/TimeFilter'
 import { 
   Search, 
   Filter, 
@@ -147,6 +148,11 @@ export default function Stock() {
     return matchesSearch && matchesCategory && matchesStatus
   })
 
+  const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
+    console.log('Period changed to:', period, customDates)
+    // Aqui você implementaria a lógica para filtrar movimentações de estoque baseado no período
+  }
+
   const lowStockProducts = mockProducts.filter(product => product.stock <= product.minStock && product.stock > 0)
   const outOfStockProducts = mockProducts.filter(product => product.stock === 0)
   const featuredProducts = mockProducts.filter(product => product.featured)
@@ -179,6 +185,9 @@ export default function Stock() {
           Novo Produto
         </Button>
       </div>
+
+      {/* Time Filter */}
+      <TimeFilter onPeriodChange={handlePeriodChange} />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

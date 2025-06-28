@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -6,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { TimeFilter } from '@/components/TimeFilter'
 import { 
   Search, 
   Filter, 
@@ -140,6 +140,11 @@ export default function Orders() {
     console.log('Viewing order:', orderId)
   }
 
+  const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
+    console.log('Period changed to:', period, customDates)
+    // Aqui você implementaria a lógica para filtrar os pedidos baseado no período
+  }
+
   const conditionalOrders = mockOrders.filter(order => order.type === 'conditional' && order.status === 'conditional')
   const overdueOrders = mockOrders.filter(order => order.status === 'overdue')
   const todaysOrders = mockOrders.filter(order => {
@@ -154,6 +159,9 @@ export default function Orders() {
         <h1 className="text-3xl font-bold text-foreground">Pedidos</h1>
         <p className="text-muted-foreground">Gestão de vendas e condicionais</p>
       </div>
+
+      {/* Time Filter */}
+      <TimeFilter onPeriodChange={handlePeriodChange} />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
