@@ -1,9 +1,11 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { 
   Search, 
   Filter, 
@@ -131,12 +133,10 @@ export default function Orders() {
   }
 
   const handleProcessReturn = (orderId: string) => {
-    // In real app, this would open a modal to process the return
     console.log('Processing return for order:', orderId)
   }
 
   const handleViewOrder = (orderId: string) => {
-    // In real app, this would open order details
     console.log('Viewing order:', orderId)
   }
 
@@ -245,94 +245,113 @@ export default function Orders() {
         </CardContent>
       </Card>
 
-      {/* Orders List */}
+      {/* Orders Table */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Pedidos ({filteredOrders.length})</CardTitle>
           <CardDescription>Histórico de vendas e condicionais</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredOrders.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Nenhum pedido encontrado com os filtros aplicados
-              </p>
-            ) : (
-              filteredOrders.map((order) => (
-                <div 
-                  key={order.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div>
-                      <p className="font-medium">#{order.orderNumber}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <p className="font-medium">{order.customerName}</p>
-                      <p className="text-sm text-muted-foreground">{order.customerPhone}</p>
-                    </div>
-                    
-                    <div>
-                      <div className="flex space-x-2">
-                        {getTypeBadge(order.type)}
-                        {getStatusBadge(order.status)}
+          {filteredOrders.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              Nenhum pedido encontrado com os filtros aplicados
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Tipo/Status</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">#{order.orderNumber}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                        </p>
                       </div>
-                      {order.dueDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Vence: {new Date(order.dueDate).toLocaleDateString('pt-BR')}
-                        </p>
-                      )}
-                    </div>
+                    </TableCell>
                     
-                    <div>
-                      <p className="font-medium">
-                        R$ {order.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {order.items} {order.items === 1 ? 'item' : 'itens'}
-                      </p>
-                    </div>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{order.customerName}</p>
+                        <p className="text-sm text-muted-foreground">{order.customerPhone}</p>
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex space-x-2">
+                          {getTypeBadge(order.type)}
+                          {getStatusBadge(order.status)}
+                        </div>
+                        {order.dueDate && (
+                          <p className="text-xs text-muted-foreground">
+                            Vence: {new Date(order.dueDate).toLocaleDateString('pt-BR')}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">
+                          R$ {order.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {order.items} {order.items === 1 ? 'item' : 'itens'}
+                        </p>
+                      </div>
+                    </TableCell>
 
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Por: {order.userName}
-                      </p>
-                      {order.paymentMethod && (
-                        <p className="text-xs text-muted-foreground">
-                          {order.paymentMethod}
+                    <TableCell>
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          Por: {order.userName}
                         </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-2 ml-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleViewOrder(order.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                        {order.paymentMethod && (
+                          <p className="text-xs text-muted-foreground">
+                            {order.paymentMethod}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
                     
-                    {order.type === 'conditional' && order.status === 'conditional' && (
-                      <Button
-                        size="sm"
-                        className="bg-copper-500 hover:bg-copper-600"
-                        onClick={() => handleProcessReturn(order.id)}
-                      >
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        Processar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewOrder(order.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        
+                        {order.type === 'conditional' && order.status === 'conditional' && (
+                          <Button
+                            size="sm"
+                            className="bg-copper-500 hover:bg-copper-600"
+                            onClick={() => handleProcessReturn(order.id)}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            Processar
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
