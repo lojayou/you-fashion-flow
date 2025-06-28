@@ -180,14 +180,14 @@ export default function Stock() {
           <h1 className="text-3xl font-bold text-foreground">Estoque</h1>
           <p className="text-muted-foreground">Gestão de produtos e inventário</p>
         </div>
-        <Button className="bg-copper-500 hover:bg-copper-600">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Produto
-        </Button>
+        <div className="flex items-center space-x-4">
+          <TimeFilter onPeriodChange={handlePeriodChange} />
+          <Button className="bg-copper-500 hover:bg-copper-600">
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Produto
+          </Button>
+        </div>
       </div>
-
-      {/* Time Filter */}
-      <TimeFilter onPeriodChange={handlePeriodChange} />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

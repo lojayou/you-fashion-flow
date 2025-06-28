@@ -63,13 +63,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do sistema You Fashion & Style</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral do sistema You Fashion & Style</p>
+        </div>
+        <TimeFilter onPeriodChange={handlePeriodChange} />
       </div>
-
-      {/* Time Filter */}
-      <TimeFilter onPeriodChange={handlePeriodChange} />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

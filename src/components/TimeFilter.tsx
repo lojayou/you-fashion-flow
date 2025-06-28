@@ -1,6 +1,5 @@
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -37,96 +36,85 @@ export function TimeFilter({ onPeriodChange }: TimeFilterProps) {
   const isCustomDateValid = customFromDate && customToDate && customFromDate <= customToDate
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Clock className="h-5 w-5" />
-          <span>Período</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col space-y-4">
-          <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione o período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Hoje</SelectItem>
-              <SelectItem value="yesterday">Ontem</SelectItem>
-              <SelectItem value="this-week">Esta Semana</SelectItem>
-              <SelectItem value="this-month">Este Mês</SelectItem>
-              <SelectItem value="this-year">Este Ano</SelectItem>
-              <SelectItem value="custom">Personalizado</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="flex items-center space-x-2">
+      <Clock className="h-4 w-4 text-muted-foreground" />
+      
+      <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
+        <SelectTrigger className="w-40 h-8 text-xs">
+          <SelectValue placeholder="Período" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="today">Hoje</SelectItem>
+          <SelectItem value="yesterday">Ontem</SelectItem>
+          <SelectItem value="this-week">Esta Semana</SelectItem>
+          <SelectItem value="this-month">Este Mês</SelectItem>
+          <SelectItem value="this-year">Este Ano</SelectItem>
+          <SelectItem value="custom">Personalizado</SelectItem>
+        </SelectContent>
+      </Select>
 
-          {selectedPeriod === 'custom' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Data Inicial</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !customFromDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {customFromDate ? format(customFromDate, "dd/MM/yyyy") : "Selecionar"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={customFromDate}
-                      onSelect={setCustomFromDate}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Data Final</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !customToDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {customToDate ? format(customToDate, "dd/MM/yyyy") : "Selecionar"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={customToDate}
-                      onSelect={setCustomToDate}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <Button 
-                onClick={handleCustomDateApply}
-                disabled={!isCustomDateValid}
-                className="bg-copper-500 hover:bg-copper-600"
+      {selectedPeriod === 'custom' && (
+        <div className="flex items-center space-x-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 text-xs",
+                  !customFromDate && "text-muted-foreground"
+                )}
               >
-                Aplicar
+                <CalendarIcon className="mr-1 h-3 w-3" />
+                {customFromDate ? format(customFromDate, "dd/MM") : "De"}
               </Button>
-            </div>
-          )}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={customFromDate}
+                onSelect={setCustomFromDate}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 text-xs",
+                  !customToDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-1 h-3 w-3" />
+                {customToDate ? format(customToDate, "dd/MM") : "Até"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={customToDate}
+                onSelect={setCustomToDate}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button 
+            size="sm"
+            onClick={handleCustomDateApply}
+            disabled={!isCustomDateValid}
+            className="bg-copper-500 hover:bg-copper-600 h-8 text-xs px-2"
+          >
+            OK
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   )
 }
