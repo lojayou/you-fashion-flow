@@ -29,46 +29,52 @@ export function useProductSearch() {
     setError(null)
 
     try {
-      console.log('Iniciando busca com termo:', term)
+      console.log('Buscando produtos na tabela "products" com termo:', term)
       
-      // Primeiro, vamos testar uma consulta simples sem relacionamentos
       let query = supabase
         .from('products')
         .select('*')
         .eq('status', 'active')
-        .order('name')
 
       if (term.trim()) {
-        // Busca mais flexível usando ilike para busca parcial case-insensitive
+        // Busca por nome ou SKU com correspondência parcial
         query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
+        console.log('Aplicando filtro de busca:', `name.ilike.%${term}%,sku.ilike.%${term}%`)
       }
 
-      const { data: simpleData, error: simpleError } = await query.limit(20)
+      const { data, error } = await query
+        .order('name')
+        .limit(50)
 
-      if (simpleError) {
-        console.error('Erro na consulta simples:', simpleError)
-        throw simpleError
+      if (error) {
+        console.error('Erro na consulta da tabela products:', error)
+        throw error
       }
 
-      console.log('Dados retornados da consulta simples:', simpleData)
+      console.log(`Encontrados ${data?.length || 0} produtos na tabela:`, data)
 
-      // Agora vamos buscar os relacionamentos separadamente se precisarmos
-      const formattedProducts = simpleData?.map(product => ({
+      if (!data || data.length === 0) {
+        console.log('Nenhum produto encontrado na tabela products')
+        setProducts([])
+        return
+      }
+
+      const formattedProducts = data.map(product => ({
         id: product.id,
         name: product.name,
         sku: product.sku,
-        sale_price: product.sale_price,
+        sale_price: product.sale_price || 0,
         stock: product.stock || 0,
         min_stock: product.min_stock || 0,
-        status: product.status,
-        brand: undefined, // Por enquanto sem relacionamento
-        category: undefined // Por enquanto sem relacionamento
-      })) || []
+        status: product.status as 'active' | 'inactive',
+        brand: undefined, // Será implementado posteriormente
+        category: undefined // Será implementado posteriormente
+      }))
 
-      console.log('Produtos formatados:', formattedProducts)
+      console.log('Produtos formatados para exibição:', formattedProducts)
       setProducts(formattedProducts)
     } catch (err) {
-      console.error('Error searching products:', err)
+      console.error('Erro ao buscar produtos na tabela products:', err)
       setError('Erro ao buscar produtos')
       setProducts([])
     } finally {
