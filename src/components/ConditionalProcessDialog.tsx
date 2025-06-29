@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -76,7 +76,7 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
   })
 
   // Reset selected items when dialog opens/closes or items change
-  useState(() => {
+  useEffect(() => {
     if (open && items.length > 0) {
       setSelectedItems(items.map(item => item.id))
     } else if (!open) {
