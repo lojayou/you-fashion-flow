@@ -77,8 +77,7 @@ export default function Orders() {
         customer_phone: conditional.customer_phone,
         customer_id: conditional.customer_id,
         type: 'conditional' as const,
-        status: conditional.status === 'active' ? 'conditional' : 
-                conditional.status === 'overdue' ? 'overdue' : conditional.status,
+        status: conditional.status as Order['status'], // Cast to proper status type
         total_amount: conditional.total_value,
         created_at: conditional.created_at,
         due_date: conditional.due_date,
@@ -99,7 +98,7 @@ export default function Orders() {
     
     const matchesStatus = statusFilter === 'all' || 
                          (statusFilter === 'completed' && (order.status === 'delivered' || order.status === 'confirmed')) ||
-                         (statusFilter === 'conditional' && order.status === 'conditional') ||
+                         (statusFilter === 'active' && order.status === 'active') ||
                          (statusFilter === 'overdue' && order.status === 'overdue') ||
                          (statusFilter === 'cancelled' && order.status === 'cancelled') ||
                          (statusFilter === 'pending' && order.status === 'pending')
@@ -114,10 +113,11 @@ export default function Orders() {
       delivered: { label: 'Finalizado', variant: 'secondary' as const },
       confirmed: { label: 'Finalizado', variant: 'secondary' as const },
       pending: { label: 'Pendente', variant: 'outline' as const },
-      conditional: { label: 'Condicional', variant: 'secondary' as const },
+      active: { label: 'Condicional', variant: 'secondary' as const },
       overdue: { label: 'Atrasado', variant: 'destructive' as const },
       cancelled: { label: 'Cancelado', variant: 'outline' as const },
-      active: { label: 'Condicional', variant: 'secondary' as const }
+      returned: { label: 'Devolvido', variant: 'outline' as const },
+      sold: { label: 'Vendido', variant: 'secondary' as const }
     }
     
     const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'outline' as const }
@@ -145,7 +145,7 @@ export default function Orders() {
     // Aqui você implementaria a lógica para filtrar os pedidos baseado no período
   }
 
-  const conditionalOrders = allOrders.filter(order => order.type === 'conditional' && (order.status === 'conditional' || order.status === 'active'))
+  const conditionalOrders = allOrders.filter(order => order.type === 'conditional' && order.status === 'active')
   const overdueOrders = allOrders.filter(order => order.status === 'overdue')
   const todaysOrders = allOrders.filter(order => {
     const orderDate = new Date(order.created_at).toDateString()
@@ -229,7 +229,7 @@ export default function Orders() {
               <SelectContent>
                 <SelectItem value="all">Todos os Status</SelectItem>
                 <SelectItem value="completed">Finalizado</SelectItem>
-                <SelectItem value="conditional">Condicional</SelectItem>
+                <SelectItem value="active">Condicional</SelectItem>
                 <SelectItem value="overdue">Atrasado</SelectItem>
                 <SelectItem value="pending">Pendente</SelectItem>
                 <SelectItem value="cancelled">Cancelado</SelectItem>
@@ -338,7 +338,7 @@ export default function Orders() {
                           <Eye className="h-4 w-4" />
                         </Button>
                         
-                        {order.type === 'conditional' && (order.status === 'conditional' || order.status === 'active') && (
+                        {order.type === 'conditional' && order.status === 'active' && (
                           <Button
                             size="sm"
                             className="bg-copper-500 hover:bg-copper-600"
