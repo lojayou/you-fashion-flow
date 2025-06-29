@@ -26,7 +26,6 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CustomerSearch } from '@/components/CustomerSearch'
 import { supabase } from '@/integrations/supabase/client'
-import { ProductSearch } from '@/components/ProductSearch'
 
 interface CartItem {
   id: string
@@ -67,22 +66,28 @@ export default function PDV() {
   const [customPaymentType, setCustomPaymentType] = useState('')
   const { toast } = useToast()
 
-  const handleProductSelect = (product: any) => {
+  // Mock products for demo
+  const mockProducts = [
+    { id: '1', name: 'Blusa Elegante', price: 89.90, stock: 10 },
+    { id: '2', name: 'Calça Jeans', price: 129.90, stock: 8 },
+    { id: '3', name: 'Vestido Festa', price: 199.90, stock: 5 },
+    { id: '4', name: 'Saia Midi', price: 79.90, stock: 12 }
+  ]
+
+  const addToCart = (productId: string) => {
+    const product = mockProducts.find(p => p.id === productId)
+    if (!product) return
+
     const newItem: CartItem = {
       id: Date.now().toString(),
       name: product.name,
-      size: 'M', // Default size - could be made configurable
-      color: 'Azul', // Default color - could be made configurable
-      price: product.sale_price,
+      size: 'M',
+      color: 'Azul',
+      price: product.price,
       quantity: 1
     }
 
     setCart([...cart, newItem])
-    
-    toast({
-      title: 'Produto adicionado',
-      description: `${product.name} foi adicionado ao carrinho`,
-    })
   }
 
   const updateQuantity = (itemId: string, quantity: number) => {
@@ -135,6 +140,7 @@ export default function PDV() {
   const change = totalPaid - total
 
   const handleCustomerCreated = (newCustomer: Customer) => {
+    // Automaticamente selecionar o cliente recém-cadastrado
     setSelectedCustomer(newCustomer)
     toast({
       title: 'Cliente cadastrado e selecionado',
@@ -183,6 +189,7 @@ export default function PDV() {
       const orderNumber = `${isConditional ? 'COND' : 'VEND'}-${Date.now()}`
       
       if (isConditional) {
+        // Salvar condicional
         const { data: conditional, error: conditionalError } = await supabase
           .from('conditionals')
           .insert({
@@ -200,6 +207,7 @@ export default function PDV() {
           throw conditionalError
         }
 
+        // Salvar itens do condicional
         const conditionalItems = cart.map(item => ({
           conditional_id: conditional.id,
           product_name: item.name,
@@ -218,6 +226,7 @@ export default function PDV() {
         }
 
       } else {
+        // Salvar venda
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .insert({
@@ -238,6 +247,7 @@ export default function PDV() {
           throw orderError
         }
 
+        // Salvar itens da venda
         const orderItems = cart.map(item => ({
           order_id: order.id,
           product_name: item.name,
@@ -292,17 +302,38 @@ export default function PDV() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Products Selection with Search */}
+        {/* Products Selection */}
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Plus className="h-5 w-5" />
               <span>Produtos</span>
             </CardTitle>
-            <CardDescription>Busque e selecione produtos para adicionar</CardDescription>
+            <CardDescription>Selecione produtos para adicionar</CardDescription>
           </CardHeader>
           <CardContent>
-            <ProductSearch onProductSelect={handleProductSelect} />
+            <div className="space-y-3">
+              {mockProducts.map((product) => (
+                <div 
+                  key={product.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div>
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      R$ {product.price.toFixed(2)} • Estoque: {product.stock}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => addToCart(product.id)}
+                    className="bg-copper-500 hover:bg-copper-600"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
