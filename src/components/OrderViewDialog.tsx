@@ -122,7 +122,7 @@ export function OrderViewDialog({ orderId, orderType, open, onOpenChange }: Orde
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex items-center justify-between pr-8">
             <span>Pedido #{order.order_number}</span>
             <div className="flex items-center space-x-2">
               <Badge variant="outline">

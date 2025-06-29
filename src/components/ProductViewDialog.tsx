@@ -73,7 +73,7 @@ export function ProductViewDialog({ product, open, onOpenChange }: ProductViewDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex items-center justify-between pr-8">
             <span>{product.name}</span>
             <div className="flex items-center space-x-2">
               {product.featured && <Badge className="bg-copper-500">Destaque</Badge>}
