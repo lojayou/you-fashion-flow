@@ -29,19 +29,12 @@ export function useProductSearch() {
     setError(null)
 
     try {
+      console.log('Iniciando busca com termo:', term)
+      
+      // Primeiro, vamos testar uma consulta simples sem relacionamentos
       let query = supabase
         .from('products')
-        .select(`
-          id,
-          name,
-          sku,
-          sale_price,
-          stock,
-          min_stock,
-          status,
-          brands:brand_id (name),
-          categories:category_id (name)
-        `)
+        .select('*')
         .eq('status', 'active')
         .order('name')
 
@@ -50,16 +43,17 @@ export function useProductSearch() {
         query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
       }
 
-      const { data, error } = await query.limit(20)
+      const { data: simpleData, error: simpleError } = await query.limit(20)
 
-      if (error) {
-        console.error('Erro na consulta:', error)
-        throw error
+      if (simpleError) {
+        console.error('Erro na consulta simples:', simpleError)
+        throw simpleError
       }
 
-      console.log('Dados retornados da consulta:', data)
+      console.log('Dados retornados da consulta simples:', simpleData)
 
-      const formattedProducts = data?.map(product => ({
+      // Agora vamos buscar os relacionamentos separadamente se precisarmos
+      const formattedProducts = simpleData?.map(product => ({
         id: product.id,
         name: product.name,
         sku: product.sku,
@@ -67,8 +61,8 @@ export function useProductSearch() {
         stock: product.stock || 0,
         min_stock: product.min_stock || 0,
         status: product.status,
-        brand: product.brands ? { name: product.brands.name } : undefined,
-        category: product.categories ? { name: product.categories.name } : undefined
+        brand: undefined, // Por enquanto sem relacionamento
+        category: undefined // Por enquanto sem relacionamento
       })) || []
 
       console.log('Produtos formatados:', formattedProducts)
