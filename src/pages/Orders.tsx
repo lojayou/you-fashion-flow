@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -6,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TimeFilter } from '@/components/TimeFilter'
+import { OrderViewDialog } from '@/components/OrderViewDialog'
+import { ConditionalProcessDialog } from '@/components/ConditionalProcessDialog'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { 
@@ -40,6 +43,11 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [selectedOrderType, setSelectedOrderType] = useState<'sale' | 'conditional'>('sale')
+  const [orderViewOpen, setOrderViewOpen] = useState(false)
+  const [selectedConditionalId, setSelectedConditionalId] = useState<string | null>(null)
+  const [conditionalProcessOpen, setConditionalProcessOpen] = useState(false)
 
   // Fetch orders (vendas) - revalidate every 30 seconds to catch new orders
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
@@ -134,11 +142,14 @@ export default function Orders() {
   }
 
   const handleProcessReturn = (orderId: string) => {
-    console.log('Processing return for order:', orderId)
+    setSelectedConditionalId(orderId)
+    setConditionalProcessOpen(true)
   }
 
-  const handleViewOrder = (orderId: string) => {
-    console.log('Viewing order:', orderId)
+  const handleViewOrder = (orderId: string, orderType: 'sale' | 'conditional') => {
+    setSelectedOrderId(orderId)
+    setSelectedOrderType(orderType)
+    setOrderViewOpen(true)
   }
 
   const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
@@ -334,7 +345,7 @@ export default function Orders() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleViewOrder(order.id)}
+                          onClick={() => handleViewOrder(order.id, order.type)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -358,6 +369,20 @@ export default function Orders() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <OrderViewDialog
+        orderId={selectedOrderId}
+        orderType={selectedOrderType}
+        open={orderViewOpen}
+        onOpenChange={setOrderViewOpen}
+      />
+
+      <ConditionalProcessDialog
+        conditionalId={selectedConditionalId}
+        open={conditionalProcessOpen}
+        onOpenChange={setConditionalProcessOpen}
+      />
     </div>
   )
 }
