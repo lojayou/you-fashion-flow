@@ -188,11 +188,8 @@ export default function PDV() {
     try {
       const orderNumber = `${isConditional ? 'COND' : 'VEND'}-${Date.now()}`
       
-      console.log('Iniciando salvamento do pedido:', { isConditional, orderNumber, total })
-      
       if (isConditional) {
         // Salvar condicional
-        console.log('Salvando condicional...')
         const { data: conditional, error: conditionalError } = await supabase
           .from('conditionals')
           .insert({
@@ -207,11 +204,8 @@ export default function PDV() {
           .single()
 
         if (conditionalError) {
-          console.error('Erro ao salvar condicional:', conditionalError)
           throw conditionalError
         }
-
-        console.log('Condicional salvo:', conditional)
 
         // Salvar itens do condicional
         const conditionalItems = cart.map(item => ({
@@ -228,15 +222,11 @@ export default function PDV() {
           .insert(conditionalItems)
 
         if (itemsError) {
-          console.error('Erro ao salvar itens do condicional:', itemsError)
           throw itemsError
         }
 
-        console.log('Itens do condicional salvos')
-
       } else {
         // Salvar venda
-        console.log('Salvando venda...')
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .insert({
@@ -254,11 +244,8 @@ export default function PDV() {
           .single()
 
         if (orderError) {
-          console.error('Erro ao salvar venda:', orderError)
           throw orderError
         }
-
-        console.log('Venda salva:', order)
 
         // Salvar itens da venda
         const orderItems = cart.map(item => ({
@@ -276,11 +263,8 @@ export default function PDV() {
           .insert(orderItems)
 
         if (itemsError) {
-          console.error('Erro ao salvar itens da venda:', itemsError)
           throw itemsError
         }
-
-        console.log('Itens da venda salvos')
       }
 
       toast({
