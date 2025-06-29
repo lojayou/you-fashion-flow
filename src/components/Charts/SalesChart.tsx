@@ -16,18 +16,41 @@ interface SalesChartProps {
     date: string
     sales: number
   }>
+  isHourlyData?: boolean
 }
 
-export function SalesChart({ data }: SalesChartProps) {
+export function SalesChart({ data, isHourlyData = false }: SalesChartProps) {
+  const getChartTitle = () => {
+    if (isHourlyData) {
+      return "Vendas por Hora"
+    }
+    return "Vendas dos Últimos Dias"
+  }
+
+  const getChartDescription = () => {
+    if (isHourlyData) {
+      return "Evolução das vendas por hora"
+    }
+    return "Evolução das vendas diárias"
+  }
+
+  const formatXAxisTick = (value: string) => {
+    if (isHourlyData) {
+      return value // Já está no formato "HH:00"
+    }
+    const date = new Date(value)
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <TrendingUp className="h-5 w-5 text-green-500" />
-          <span>Vendas dos Últimos 7 Dias</span>
+          <span>{getChartTitle()}</span>
         </CardTitle>
         <CardDescription>
-          Evolução das vendas diárias
+          {getChartDescription()}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -39,10 +62,7 @@ export function SalesChart({ data }: SalesChartProps) {
               axisLine={false}
               tickMargin={8}
               tick={{ fill: 'hsl(var(--muted-foreground))' }}
-              tickFormatter={(value) => {
-                const date = new Date(value)
-                return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-              }}
+              tickFormatter={formatXAxisTick}
             />
             <YAxis hide />
             <ChartTooltip

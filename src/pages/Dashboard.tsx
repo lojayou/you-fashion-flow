@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -38,7 +37,7 @@ export default function Dashboard() {
     customDates 
   })
 
-  const { salesData, paymentData, conditionalData } = useDashboardCharts({ 
+  const { salesData, paymentData, conditionalData, isHourlyData } = useDashboardCharts({ 
     period: selectedPeriod, 
     customDates 
   })
@@ -167,7 +166,7 @@ export default function Dashboard() {
       {/* Charts Section */}
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SalesChart data={salesData} />
+          <SalesChart data={salesData} isHourlyData={isHourlyData} />
           <PaymentMethodsChart data={paymentData} />
         </div>
         

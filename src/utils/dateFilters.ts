@@ -30,7 +30,8 @@ export function getDateRangeFromPeriod(
     case 'this-week':
       const startOfWeek = new Date(today)
       const dayOfWeek = today.getDay()
-      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // Adjust for Sunday
+      // Ajustar para segunda-feira ser o primeiro dia (0 = domingo, 1 = segunda)
+      const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
       startOfWeek.setDate(today.getDate() + diff)
       
       const endOfWeek = new Date(startOfWeek)
@@ -81,4 +82,9 @@ export function getDateRangeFromPeriod(
         to: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
       }
   }
+}
+
+// Função para determinar se deve mostrar dados por hora (apenas para hoje e ontem)
+export function shouldShowHourlyData(period: TimeFilterOption): boolean {
+  return period === 'today' || period === 'yesterday'
 }
