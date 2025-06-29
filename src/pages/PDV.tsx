@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { CustomerSearch } from '@/components/CustomerSearch'
 import { supabase } from '@/integrations/supabase/client'
 import { ProductSearch } from '@/components/ProductSearch'
+import { QuickAddProduct } from '@/components/QuickAddProduct'
 
 interface CartItem {
   id: string
@@ -309,10 +310,14 @@ export default function PDV() {
         {/* Cart */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <ShoppingCart className="h-5 w-5" />
-              <span>Carrinho ({cart.length} itens)</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ShoppingCart className="h-5 w-5" />
+                <span>Carrinho ({cart.length} itens)</span>
+              </div>
+            </div>
+            <CardDescription>Adicione produtos rapidamente pelo SKU</CardDescription>
+            <QuickAddProduct onProductAdd={handleProductSelect} />
           </CardHeader>
           <CardContent>
             {cart.length === 0 ? (
