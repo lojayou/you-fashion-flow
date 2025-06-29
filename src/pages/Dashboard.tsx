@@ -121,7 +121,7 @@ export default function Dashboard() {
 
         <Card className="border-copper-200 dark:border-copper-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas Hoje</CardTitle>
+            <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>

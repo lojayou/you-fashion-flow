@@ -13,7 +13,7 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
   const dateRange = getDateRangeFromPeriod(period, customDates)
   const isHourlyData = shouldShowHourlyData(period)
 
-  // Dados de vendas com filtro de data
+  // Dados de vendas com filtro de data - corrigido para mostrar apenas pedidos entregues
   const { data: salesData } = useQuery({
     queryKey: ['sales-chart-data', period, customDates],
     queryFn: async () => {
@@ -22,7 +22,7 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
         .select('total_amount, created_at')
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .eq('status', 'delivered')
+        .eq('status', 'delivered') // Apenas pedidos entregues
       
       if (error) throw error
 
