@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -6,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { TimeFilter } from '@/components/TimeFilter'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/integrations/supabase/client'
 import { 
   Search, 
   Filter, 
@@ -21,18 +24,17 @@ import {
 
 interface Order {
   id: string
-  orderNumber: string
-  customerName: string
-  customerPhone: string
+  order_number: string
+  customer_name: string
+  customer_phone?: string
+  customer_id?: string
   type: 'sale' | 'conditional'
-  status: 'completed' | 'pending' | 'conditional' | 'overdue' | 'cancelled'
-  items: number
-  total: number
-  paymentMethod?: string
-  createdAt: string
-  dueDate?: string
-  userId: string
-  userName: string
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'active' | 'overdue' | 'returned' | 'sold'
+  total_amount: number
+  payment_method?: string
+  created_at: string
+  due_date?: string
+  created_by?: string
 }
 
 export default function Orders() {
@@ -40,87 +42,85 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  // Mock orders data
-  const mockOrders: Order[] = [
-    {
-      id: '1',
-      orderNumber: '001',
-      customerName: 'Maria Silva',
-      customerPhone: '(11) 99999-9999',
-      type: 'conditional',
-      status: 'conditional',
-      items: 3,
-      total: 450.00,
-      createdAt: '2025-06-08T10:30:00',
-      dueDate: '2025-06-15T23:59:59',
-      userId: '1',
-      userName: 'Admin'
-    },
-    {
-      id: '2',
-      orderNumber: '002',
-      customerName: 'Ana Costa',
-      customerPhone: '(11) 98888-8888',
-      type: 'conditional',
-      status: 'overdue',
-      items: 2,
-      total: 320.00,
-      createdAt: '2025-06-01T14:20:00',
-      dueDate: '2025-06-07T23:59:59',
-      userId: '1',
-      userName: 'Admin'
-    },
-    {
-      id: '3',
-      orderNumber: '003',
-      customerName: 'Julia Santos',
-      customerPhone: '(11) 97777-7777',
-      type: 'sale',
-      status: 'completed',
-      items: 2,
-      total: 259.80,
-      paymentMethod: 'Cartão',
-      createdAt: '2025-06-08T16:45:00',
-      userId: '1',
-      userName: 'Admin'
-    },
-    {
-      id: '4',
-      orderNumber: '004',
-      customerName: 'Carla Oliveira',
-      customerPhone: '(11) 96666-6666',
-      type: 'conditional',
-      status: 'conditional',
-      items: 4,
-      total: 680.00,
-      createdAt: '2025-06-08T11:15:00',
-      dueDate: '2025-06-20T23:59:59',
-      userId: '1',
-      userName: 'Admin'
-    }
-  ]
+  // Fetch orders (vendas)
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-  const filteredOrders = mockOrders.filter(order => {
-    const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerPhone.includes(searchTerm) ||
-                         order.orderNumber.includes(searchTerm)
+      if (error) throw error
+      return data.map(order => ({
+        ...order,
+        type: 'sale' as const,
+        status: order.status || 'pending'
+      }))
+    }
+  })
+
+  // Fetch conditionals (condicionais)
+  const { data: conditionals = [], isLoading: conditionalsLoading } = useQuery({
+    queryKey: ['conditionals'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('conditionals')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data.map(conditional => ({
+        id: conditional.id,
+        order_number: `COND-${conditional.id.slice(0, 8)}`,
+        customer_name: conditional.customer_name,
+        customer_phone: conditional.customer_phone,
+        customer_id: conditional.customer_id,
+        type: 'conditional' as const,
+        status: conditional.status === 'active' ? 'conditional' : 
+                conditional.status === 'overdue' ? 'overdue' : conditional.status,
+        total_amount: conditional.total_value,
+        created_at: conditional.created_at,
+        due_date: conditional.due_date,
+        created_by: conditional.created_by
+      }))
+    }
+  })
+
+  const isLoading = ordersLoading || conditionalsLoading
+
+  // Combine orders and conditionals
+  const allOrders: Order[] = [...orders, ...conditionals]
+
+  const filteredOrders = allOrders.filter(order => {
+    const matchesSearch = order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (order.customer_phone && order.customer_phone.includes(searchTerm)) ||
+                         order.order_number.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'completed' && (order.status === 'delivered' || order.status === 'confirmed')) ||
+                         (statusFilter === 'conditional' && order.status === 'conditional') ||
+                         (statusFilter === 'overdue' && order.status === 'overdue') ||
+                         (statusFilter === 'cancelled' && order.status === 'cancelled') ||
+                         (statusFilter === 'pending' && order.status === 'pending')
+    
     const matchesType = typeFilter === 'all' || order.type === typeFilter
 
     return matchesSearch && matchesStatus && matchesType
   })
 
-  const getStatusBadge = (status: Order['status']) => {
+  const getStatusBadge = (status: string) => {
     const statusConfig = {
-      completed: { label: 'Finalizado', variant: 'secondary' as const },
+      delivered: { label: 'Finalizado', variant: 'secondary' as const },
+      confirmed: { label: 'Finalizado', variant: 'secondary' as const },
       pending: { label: 'Pendente', variant: 'outline' as const },
       conditional: { label: 'Condicional', variant: 'secondary' as const },
       overdue: { label: 'Atrasado', variant: 'destructive' as const },
-      cancelled: { label: 'Cancelado', variant: 'outline' as const }
+      cancelled: { label: 'Cancelado', variant: 'outline' as const },
+      active: { label: 'Condicional', variant: 'secondary' as const }
     }
     
-    const config = statusConfig[status]
+    const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'outline' as const }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
@@ -145,10 +145,10 @@ export default function Orders() {
     // Aqui você implementaria a lógica para filtrar os pedidos baseado no período
   }
 
-  const conditionalOrders = mockOrders.filter(order => order.type === 'conditional' && order.status === 'conditional')
-  const overdueOrders = mockOrders.filter(order => order.status === 'overdue')
-  const todaysOrders = mockOrders.filter(order => {
-    const orderDate = new Date(order.createdAt).toDateString()
+  const conditionalOrders = allOrders.filter(order => order.type === 'conditional' && (order.status === 'conditional' || order.status === 'active'))
+  const overdueOrders = allOrders.filter(order => order.status === 'overdue')
+  const todaysOrders = allOrders.filter(order => {
+    const orderDate = new Date(order.created_at).toDateString()
     const today = new Date().toDateString()
     return orderDate === today
   })
@@ -231,6 +231,7 @@ export default function Orders() {
                 <SelectItem value="completed">Finalizado</SelectItem>
                 <SelectItem value="conditional">Condicional</SelectItem>
                 <SelectItem value="overdue">Atrasado</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
                 <SelectItem value="cancelled">Cancelado</SelectItem>
               </SelectContent>
             </Select>
@@ -260,7 +261,11 @@ export default function Orders() {
           <CardDescription>Histórico de vendas e condicionais</CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredOrders.length === 0 ? (
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8">
+              Carregando pedidos...
+            </p>
+          ) : filteredOrders.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               Nenhum pedido encontrado com os filtros aplicados
             </p>
@@ -272,7 +277,6 @@ export default function Orders() {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Tipo/Status</TableHead>
                   <TableHead>Valor</TableHead>
-                  <TableHead>Usuário</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -281,17 +285,19 @@ export default function Orders() {
                   <TableRow key={order.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">#{order.orderNumber}</p>
+                        <p className="font-medium">#{order.order_number}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(order.createdAt).toLocaleDateString('pt-BR')}
+                          {new Date(order.created_at).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                     </TableCell>
                     
                     <TableCell>
                       <div>
-                        <p className="font-medium">{order.customerName}</p>
-                        <p className="text-sm text-muted-foreground">{order.customerPhone}</p>
+                        <p className="font-medium">{order.customer_name}</p>
+                        {order.customer_phone && (
+                          <p className="text-sm text-muted-foreground">{order.customer_phone}</p>
+                        )}
                       </div>
                     </TableCell>
                     
@@ -301,9 +307,9 @@ export default function Orders() {
                           {getTypeBadge(order.type)}
                           {getStatusBadge(order.status)}
                         </div>
-                        {order.dueDate && (
+                        {order.due_date && (
                           <p className="text-xs text-muted-foreground">
-                            Vence: {new Date(order.dueDate).toLocaleDateString('pt-BR')}
+                            Vence: {new Date(order.due_date).toLocaleDateString('pt-BR')}
                           </p>
                         )}
                       </div>
@@ -312,22 +318,11 @@ export default function Orders() {
                     <TableCell>
                       <div>
                         <p className="font-medium">
-                          R$ {order.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {Number(order.total_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.items} {order.items === 1 ? 'item' : 'itens'}
-                        </p>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Por: {order.userName}
-                        </p>
-                        {order.paymentMethod && (
+                        {order.payment_method && (
                           <p className="text-xs text-muted-foreground">
-                            {order.paymentMethod}
+                            {order.payment_method}
                           </p>
                         )}
                       </div>
@@ -343,7 +338,7 @@ export default function Orders() {
                           <Eye className="h-4 w-4" />
                         </Button>
                         
-                        {order.type === 'conditional' && order.status === 'conditional' && (
+                        {order.type === 'conditional' && (order.status === 'conditional' || order.status === 'active') && (
                           <Button
                             size="sm"
                             className="bg-copper-500 hover:bg-copper-600"
