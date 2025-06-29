@@ -21,6 +21,8 @@ import {
   BarChart3,
   Download
 } from 'lucide-react'
+import { useDynamicSalesChart } from '@/hooks/useDynamicSalesChart'
+import { DynamicSalesChart } from '@/components/Charts/DynamicSalesChart'
 
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<TimeFilterOption>('today')
@@ -37,7 +39,12 @@ export default function Dashboard() {
     customDates 
   })
 
-  const { salesData, paymentData, conditionalData, isHourlyData } = useDashboardCharts({ 
+  const { paymentData, conditionalData } = useDashboardCharts({ 
+    period: selectedPeriod, 
+    customDates 
+  })
+
+  const { data: dynamicSalesData, grouping: salesGrouping, isLoading: salesLoading } = useDynamicSalesChart({ 
     period: selectedPeriod, 
     customDates 
   })
@@ -166,7 +173,11 @@ export default function Dashboard() {
       {/* Charts Section */}
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SalesChart data={salesData} isHourlyData={isHourlyData} />
+          <DynamicSalesChart 
+            data={dynamicSalesData} 
+            grouping={salesGrouping} 
+            isLoading={salesLoading} 
+          />
           <PaymentMethodsChart data={paymentData} />
         </div>
         
