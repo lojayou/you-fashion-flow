@@ -7,7 +7,6 @@ import { Search, Plus, User } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { CustomerForm } from './CustomerForm'
 import { supabase } from '@/integrations/supabase/client'
-import { useQuery } from '@tanstack/react-query'
 
 interface Customer {
   id: string
@@ -37,13 +36,20 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect }: CustomerS
 
     setIsSearching(true)
     try {
+      console.log('Buscando clientes com termo:', searchTerm)
+      
       const { data, error } = await supabase
         .from('customers')
         .select('*')
         .or(`name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
         .limit(10)
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro na busca:', error)
+        throw error
+      }
+      
+      console.log('Resultados encontrados:', data)
       setSearchResults(data || [])
     } catch (error) {
       console.error('Erro ao buscar clientes:', error)
@@ -63,6 +69,14 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect }: CustomerS
     onCustomerSelect(null)
     setSearchTerm('')
     setSearchResults([])
+  }
+
+  const handleCustomerAdded = () => {
+    setIsAddingCustomer(false)
+    // Realizar nova busca para mostrar o cliente recém-adicionado
+    if (searchTerm.trim()) {
+      handleSearch()
+    }
   }
 
   return (
@@ -120,7 +134,7 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect }: CustomerS
                     </DialogDescription>
                   </DialogHeader>
                   <CustomerForm 
-                    onSuccess={() => setIsAddingCustomer(false)}
+                    onSuccess={handleCustomerAdded}
                   />
                 </DialogContent>
               </Dialog>

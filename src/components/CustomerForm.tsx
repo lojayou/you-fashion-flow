@@ -28,7 +28,7 @@ export function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
   const [formData, setFormData] = useState({
     name: customer?.name || '',
     email: customer?.email || '',
-    phone: customer?.phone || '',
+    phone: customer?.phone || '+55 ',
     cpf: customer?.cpf || '',
     address: customer?.address || '',
     city: customer?.city || '',
@@ -41,19 +41,32 @@ export function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
 
   const saveCustomerMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Remove empty fields to avoid issues
+      const cleanData = Object.fromEntries(
+        Object.entries(data).filter(([_, value]) => value && value.trim() !== '' && value.trim() !== '+55')
+      )
+
+      console.log('Salvando cliente:', cleanData)
+
       if (customer) {
         const { error } = await supabase
           .from('customers')
-          .update(data)
+          .update(cleanData)
           .eq('id', customer.id)
         
-        if (error) throw error
+        if (error) {
+          console.error('Erro ao atualizar cliente:', error)
+          throw error
+        }
       } else {
         const { error } = await supabase
           .from('customers')
-          .insert([data])
+          .insert([cleanData])
         
-        if (error) throw error
+        if (error) {
+          console.error('Erro ao criar cliente:', error)
+          throw error
+        }
       }
     },
     onSuccess: () => {
@@ -64,7 +77,8 @@ export function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
       })
       onSuccess()
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Erro na mutação:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível salvar o cliente',
@@ -76,7 +90,7 @@ export function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.phone) {
+    if (!formData.name || !formData.phone || formData.phone.trim() === '+55' || formData.phone.trim() === '+55 ') {
       toast({
         title: 'Erro',
         description: 'Nome e telefone são obrigatórios',
@@ -89,7 +103,23 @@ export function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
   }
 
   const handleInputChange = (field: string, value: string) => {
+    if (field === 'phone') {
+      // Garantir que sempre tenha o DDI do Brasil
+      if (!value.startsWith('+55')) {
+        value = '+55 ' + value.replace(/^\+55\s*/, '')
+      }
+    }
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handlePhoneKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Prevenir que o usuário delete o DDI
+    const input = e.currentTarget
+    const cursorPosition = input.selectionStart || 0
+    
+    if ((e.key === 'Backspace' || e.key === 'Delete') && cursorPosition <= 4) {
+      e.preventDefault()
+    }
   }
 
   return (
@@ -111,7 +141,8 @@ export function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
             id="phone"
             value={formData.phone}
             onChange={(e) => handleInputChange('phone', e.target.value)}
-            placeholder="(11) 99999-9999"
+            onKeyDown={handlePhoneKeyDown}
+            placeholder="+55 (11) 99999-9999"
             required
           />
         </div>
