@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -5,10 +6,6 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { TimeFilter } from '@/components/TimeFilter'
 import { useDashboardData } from '@/hooks/useDashboardData'
-import { useDashboardCharts } from '@/hooks/useDashboardCharts'
-import { SalesChart } from '@/components/Charts/SalesChart'
-import { PaymentMethodsChart } from '@/components/Charts/PaymentMethodsChart'
-import { ConditionalChart } from '@/components/Charts/ConditionalChart'
 import { TimeFilterOption, DateRange } from '@/utils/dateFilters'
 import { 
   ShoppingBag, 
@@ -21,8 +18,6 @@ import {
   BarChart3,
   Download
 } from 'lucide-react'
-import { useDynamicSalesChart } from '@/hooks/useDynamicSalesChart'
-import { DynamicSalesChart } from '@/components/Charts/DynamicSalesChart'
 
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<TimeFilterOption>('today')
@@ -35,16 +30,6 @@ export default function Dashboard() {
     recentConditionals,
     isLoading 
   } = useDashboardData({ 
-    period: selectedPeriod, 
-    customDates 
-  })
-
-  const { paymentData, conditionalData } = useDashboardCharts({ 
-    period: selectedPeriod, 
-    customDates 
-  })
-
-  const { data: dynamicSalesData, grouping: salesGrouping, isLoading: salesLoading } = useDynamicSalesChart({ 
     period: selectedPeriod, 
     customDates 
   })
@@ -168,22 +153,6 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DynamicSalesChart 
-            data={dynamicSalesData} 
-            grouping={salesGrouping} 
-            isLoading={salesLoading} 
-          />
-          <PaymentMethodsChart data={paymentData} />
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-          <ConditionalChart data={conditionalData} />
-        </div>
       </div>
 
       {/* Recent Conditionals and Summary */}
