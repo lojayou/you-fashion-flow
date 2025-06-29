@@ -164,7 +164,7 @@ export function OrderViewDialog({ orderId, orderType, open, onOpenChange }: Orde
                 <p className="text-sm text-muted-foreground">Data de Criação</p>
                 <p className="font-medium">{formatDate(order.created_at)}</p>
               </div>
-              {order.due_date && (
+              {orderType === 'conditional' && 'due_date' in order && order.due_date && (
                 <div>
                   <p className="text-sm text-muted-foreground">Data de Vencimento</p>
                   <p className="font-medium">{new Date(order.due_date).toLocaleDateString('pt-BR')}</p>
@@ -177,7 +177,7 @@ export function OrderViewDialog({ orderId, orderType, open, onOpenChange }: Orde
                 </p>
               </div>
             </div>
-            {order.payment_method && (
+            {orderType === 'sale' && 'payment_method' in order && order.payment_method && (
               <div className="mt-4">
                 <p className="text-sm text-muted-foreground">Método de Pagamento</p>
                 <p className="font-medium">{order.payment_method}</p>
