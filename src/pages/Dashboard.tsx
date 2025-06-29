@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,7 +6,6 @@ import { TimeFilter } from '@/components/TimeFilter'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useDashboardCharts } from '@/hooks/useDashboardCharts'
 import { SalesChart } from '@/components/Charts/SalesChart'
-import { ProductsChart } from '@/components/Charts/ProductsChart'
 import { PaymentMethodsChart } from '@/components/Charts/PaymentMethodsChart'
 import { ConditionalChart } from '@/components/Charts/ConditionalChart'
 import { 
@@ -31,7 +29,7 @@ export default function Dashboard() {
     isLoading 
   } = useDashboardData()
 
-  const { salesData, stockData, paymentData, conditionalData } = useDashboardCharts()
+  const { salesData, paymentData, conditionalData } = useDashboardCharts()
 
   const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
     console.log('Period changed to:', period, customDates)
@@ -160,8 +158,7 @@ export default function Dashboard() {
           <PaymentMethodsChart data={paymentData} />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ProductsChart data={stockData} />
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
           <ConditionalChart data={conditionalData} />
         </div>
       </div>
