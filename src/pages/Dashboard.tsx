@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +17,8 @@ import {
   BarChart3,
   Download
 } from 'lucide-react'
+import { useDynamicSalesChart } from '@/hooks/useDynamicSalesChart'
+import { DynamicSalesChart } from '@/components/Charts/DynamicSalesChart'
 
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState<TimeFilterOption>('today')
@@ -30,6 +31,11 @@ export default function Dashboard() {
     recentConditionals,
     isLoading 
   } = useDashboardData({ 
+    period: selectedPeriod, 
+    customDates 
+  })
+
+  const { data: dynamicSalesData, grouping: salesGrouping, isLoading: salesLoading } = useDynamicSalesChart({ 
     period: selectedPeriod, 
     customDates 
   })
@@ -153,6 +159,15 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Sales Chart */}
+      <div className="grid grid-cols-1 gap-6">
+        <DynamicSalesChart 
+          data={dynamicSalesData} 
+          grouping={salesGrouping} 
+          isLoading={salesLoading} 
+        />
       </div>
 
       {/* Recent Conditionals and Summary */}

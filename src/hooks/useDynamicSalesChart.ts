@@ -12,7 +12,7 @@ type ChartGrouping = 'hour' | 'day' | 'week' | 'month'
 
 interface ChartDataPoint {
   label: string
-  value: number
+  total_sales: number
   grouping: ChartGrouping
 }
 
@@ -75,9 +75,9 @@ function generateChartData(
 
   // Convert to array and sort chronologically
   return Array.from(dataMap.entries())
-    .map(([label, value]) => ({
+    .map(([label, total_sales]) => ({
       label,
-      value: Math.round(value * 100) / 100,
+      total_sales: Math.round(total_sales * 100) / 100,
       grouping
     }))
     .sort((a, b) => {

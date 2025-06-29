@@ -5,7 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { TrendingUp } from 'lucide-react'
 
 const chartConfig = {
-  value: {
+  total_sales: {
     label: "Vendas",
     color: "hsl(var(--chart-1))",
   },
@@ -13,7 +13,7 @@ const chartConfig = {
 
 interface ChartDataPoint {
   label: string
-  value: number
+  total_sales: number
   grouping: 'hour' | 'day' | 'week' | 'month'
 }
 
@@ -161,11 +161,11 @@ export function DynamicSalesChart({ data, grouping, isLoading = false }: Dynamic
                 content={<CustomTooltip />}
               />
               <Area
-                dataKey="value"
+                dataKey="total_sales"
                 type="natural"
-                fill="var(--color-value)"
+                fill="var(--color-total_sales)"
                 fillOpacity={0.4}
-                stroke="var(--color-value)"
+                stroke="var(--color-total_sales)"
                 strokeWidth={2}
               />
             </AreaChart>
