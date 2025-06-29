@@ -29,18 +29,29 @@ export function useProductSearch() {
     setError(null)
 
     try {
-      console.log('Buscando produtos na tabela "products" com termo:', term)
+      console.log('Iniciando busca de produtos com termo:', term)
       
       let query = supabase
         .from('products')
-        .select('*')
+        .select(`
+          id,
+          name,
+          sku,
+          sale_price,
+          stock,
+          min_stock,
+          status,
+          brand_id,
+          category_id
+        `)
         .eq('status', 'active')
 
       if (term.trim()) {
-        // Corrigindo a sintaxe da busca - usando filtros separados
-        query = query
-          .or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
-        console.log('Aplicando filtro de busca para:', term)
+        // Usando a sintaxe correta do Supabase para busca OR
+        query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
+        console.log('Filtro aplicado - buscando por:', term)
+      } else {
+        console.log('Carregando todos os produtos ativos')
       }
 
       const { data, error } = await query
@@ -52,8 +63,10 @@ export function useProductSearch() {
         throw error
       }
 
-      console.log(`Produtos encontrados: ${data?.length || 0}`)
-      console.log('Dados retornados:', data)
+      console.log('Resultado da consulta:', {
+        total: data?.length || 0,
+        dados: data
+      })
 
       if (!data || data.length === 0) {
         console.log('Nenhum produto encontrado')
@@ -76,7 +89,7 @@ export function useProductSearch() {
       console.log('Produtos formatados:', formattedProducts)
       setProducts(formattedProducts)
     } catch (err: any) {
-      console.error('Erro detalhado na busca:', err)
+      console.error('Erro completo na busca:', err)
       setError(`Erro ao buscar produtos: ${err.message || 'Erro desconhecido'}`)
       setProducts([])
     } finally {
