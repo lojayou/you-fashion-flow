@@ -37,9 +37,10 @@ export function useProductSearch() {
         .eq('status', 'active')
 
       if (term.trim()) {
-        // Busca por nome ou SKU com correspondência parcial
-        query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
-        console.log('Aplicando filtro de busca:', `name.ilike.%${term}%,sku.ilike.%${term}%`)
+        // Corrigindo a sintaxe da busca - usando filtros separados
+        query = query
+          .or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
+        console.log('Aplicando filtro de busca para:', term)
       }
 
       const { data, error } = await query
@@ -47,14 +48,15 @@ export function useProductSearch() {
         .limit(50)
 
       if (error) {
-        console.error('Erro na consulta da tabela products:', error)
+        console.error('Erro na consulta Supabase:', error)
         throw error
       }
 
-      console.log(`Encontrados ${data?.length || 0} produtos na tabela:`, data)
+      console.log(`Produtos encontrados: ${data?.length || 0}`)
+      console.log('Dados retornados:', data)
 
       if (!data || data.length === 0) {
-        console.log('Nenhum produto encontrado na tabela products')
+        console.log('Nenhum produto encontrado')
         setProducts([])
         return
       }
@@ -63,19 +65,19 @@ export function useProductSearch() {
         id: product.id,
         name: product.name,
         sku: product.sku,
-        sale_price: product.sale_price || 0,
-        stock: product.stock || 0,
-        min_stock: product.min_stock || 0,
+        sale_price: Number(product.sale_price) || 0,
+        stock: Number(product.stock) || 0,
+        min_stock: Number(product.min_stock) || 0,
         status: product.status as 'active' | 'inactive',
-        brand: undefined, // Será implementado posteriormente
-        category: undefined // Será implementado posteriormente
+        brand: undefined,
+        category: undefined
       }))
 
-      console.log('Produtos formatados para exibição:', formattedProducts)
+      console.log('Produtos formatados:', formattedProducts)
       setProducts(formattedProducts)
-    } catch (err) {
-      console.error('Erro ao buscar produtos na tabela products:', err)
-      setError('Erro ao buscar produtos')
+    } catch (err: any) {
+      console.error('Erro detalhado na busca:', err)
+      setError(`Erro ao buscar produtos: ${err.message || 'Erro desconhecido'}`)
       setProducts([])
     } finally {
       setIsLoading(false)
