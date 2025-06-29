@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -37,6 +39,7 @@ interface ConditionalItem {
 export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: ConditionalProcessDialogProps) {
   const [action, setAction] = useState<'sell' | 'return' | ''>('')
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [paymentMethod, setPaymentMethod] = useState('')
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -82,20 +85,44 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
     } else if (!open) {
       setSelectedItems([])
       setAction('')
+      setPaymentMethod('')
     }
   }, [open, items])
 
   // Process conditional mutation
   const processConditionalMutation = useMutation({
-    mutationFn: async ({ action, itemIds }: { action: 'sell' | 'return', itemIds: string[] }) => {
+    mutationFn: async ({ action, itemIds, paymentMethod }: { action: 'sell' | 'return', itemIds: string[], paymentMethod?: string }) => {
       if (!conditionalId) throw new Error('ID do condicional não encontrado')
 
       const selectedItemsData = items.filter(item => itemIds.includes(item.id))
+      const unselectedItemsData = items.filter(item => !itemIds.includes(item.id))
       const totalSelectedValue = selectedItemsData.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
 
       if (action === 'sell') {
         if (selectedItemsData.length === 0) {
           throw new Error('Selecione pelo menos um item para finalizar a venda')
+        }
+
+        if (!paymentMethod) {
+          throw new Error('Selecione uma forma de pagamento')
+        }
+
+        // Return unselected items to stock
+        for (const item of unselectedItemsData) {
+          const { data: product, error: productError } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single()
+
+          if (productError) throw productError
+
+          const { error: updateStockError } = await supabase
+            .from('products')
+            .update({ stock: (product.stock || 0) + item.quantity })
+            .eq('id', item.product_id)
+
+          if (updateStockError) throw updateStockError
         }
 
         // Convert selected items to sale
@@ -111,7 +138,7 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
             customer_id: conditional?.customer_id,
             total_amount: totalSelectedValue,
             status: 'confirmed',
-            payment_method: 'Condicional Finalizada'
+            payment_method: paymentMethod
           })
           .select()
           .single()
@@ -136,40 +163,43 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
 
         if (itemsError) throw itemsError
 
-        // Remove selected items from conditional
+        // Remove all items from conditional (both selected and unselected)
         const { error: deleteError } = await supabase
           .from('conditional_items')
           .delete()
-          .in('id', itemIds)
+          .eq('conditional_id', conditionalId)
 
         if (deleteError) throw deleteError
 
-        // Check if there are remaining items
-        const remainingItems = items.filter(item => !itemIds.includes(item.id))
-        
-        if (remainingItems.length === 0) {
-          // No remaining items, mark conditional as sold
-          const { error: updateError } = await supabase
-            .from('conditionals')
-            .update({ status: 'sold' })
-            .eq('id', conditionalId)
+        // Mark conditional as sold
+        const { error: updateError } = await supabase
+          .from('conditionals')
+          .update({ status: 'sold' })
+          .eq('id', conditionalId)
 
-          if (updateError) throw updateError
-        } else {
-          // Update conditional total value with remaining items
-          const remainingValue = remainingItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
-          
-          const { error: updateError } = await supabase
-            .from('conditionals')
-            .update({ total_value: remainingValue })
-            .eq('id', conditionalId)
-
-          if (updateError) throw updateError
-        }
+        if (updateError) throw updateError
 
       } else if (action === 'return') {
         if (selectedItemsData.length === 0) {
           throw new Error('Selecione pelo menos um item para devolver')
+        }
+
+        // Return selected items to stock
+        for (const item of selectedItemsData) {
+          const { data: product, error: productError } = await supabase
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single()
+
+          if (productError) throw productError
+
+          const { error: updateStockError } = await supabase
+            .from('products')
+            .update({ stock: (product.stock || 0) + item.quantity })
+            .eq('id', item.product_id)
+
+          if (updateStockError) throw updateStockError
         }
 
         // Remove selected items from conditional
@@ -206,18 +236,19 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
     },
     onSuccess: (_, variables) => {
       const selectedItemsData = items.filter(item => variables.itemIds.includes(item.id))
-      const remainingItems = items.filter(item => !variables.itemIds.includes(item.id))
+      const unselectedItemsData = items.filter(item => !variables.itemIds.includes(item.id))
       
       let message = ''
       if (variables.action === 'sell') {
-        if (remainingItems.length > 0) {
-          message = `${selectedItemsData.length} item(s) vendido(s) com sucesso! ${remainingItems.length} item(s) permanecem na condicional.`
+        if (unselectedItemsData.length > 0) {
+          message = `Venda finalizada! ${selectedItemsData.length} item(s) vendido(s) e ${unselectedItemsData.length} item(s) devolvido(s) ao estoque.`
         } else {
           message = 'Condicional finalizada como venda com sucesso!'
         }
       } else {
+        const remainingItems = items.filter(item => !variables.itemIds.includes(item.id))
         if (remainingItems.length > 0) {
-          message = `${selectedItemsData.length} item(s) devolvido(s) com sucesso! ${remainingItems.length} item(s) permanecem na condicional.`
+          message = `${selectedItemsData.length} item(s) devolvido(s) ao estoque! ${remainingItems.length} item(s) permanecem na condicional.`
         } else {
           message = 'Condicional marcada como devolvida com sucesso!'
         }
@@ -230,9 +261,11 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
       
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       queryClient.invalidateQueries({ queryKey: ['conditionals'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
       onOpenChange(false)
       setAction('')
       setSelectedItems([])
+      setPaymentMethod('')
     },
     onError: (error) => {
       toast({
@@ -245,7 +278,15 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
 
   const handleProcess = () => {
     if (!action || selectedItems.length === 0) return
-    processConditionalMutation.mutate({ action, itemIds: selectedItems })
+    if (action === 'sell' && !paymentMethod) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione uma forma de pagamento',
+        variant: 'destructive',
+      })
+      return
+    }
+    processConditionalMutation.mutate({ action, itemIds: selectedItems, paymentMethod })
   }
 
   const handleItemToggle = (itemId: string) => {
@@ -268,7 +309,9 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
 
   const isOverdue = conditional.due_date && new Date(conditional.due_date) < new Date()
   const selectedItemsData = items.filter(item => selectedItems.includes(item.id))
+  const unselectedItemsData = items.filter(item => !selectedItems.includes(item.id))
   const selectedTotal = selectedItemsData.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
+  const unselectedTotal = unselectedItemsData.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -380,13 +423,26 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
             </Table>
 
             {selectedItems.length > 0 && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Total dos Itens Selecionados:</span>
-                  <span className="text-lg font-bold text-blue-600">
-                    R$ {selectedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Total dos Itens Selecionados:</span>
+                    <span className="text-lg font-bold text-blue-600">
+                      R$ {selectedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
+                
+                {action === 'sell' && unselectedItemsData.length > 0 && (
+                  <div className="p-4 bg-orange-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Itens que voltarão ao estoque:</span>
+                      <span className="text-lg font-bold text-orange-600">
+                        {unselectedItemsData.length} item(s) - R$ {unselectedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -404,6 +460,55 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
               </SelectContent>
             </Select>
           </div>
+
+          {/* Payment Method for Sales */}
+          {action === 'sell' && (
+            <div>
+              <h3 className="font-semibold mb-2">Forma de Pagamento</h3>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
+                  <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="Transferência">Transferência</SelectItem>
+                  <SelectItem value="Cheque">Cheque</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Sale Summary */}
+          {action === 'sell' && selectedItems.length > 0 && (
+            <div className="p-4 bg-green-50 rounded-lg border">
+              <h4 className="font-semibold text-green-800 mb-2">Resumo da Venda</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Itens vendidos:</span>
+                  <span>{selectedItemsData.length} item(s)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Valor da venda:</span>
+                  <span className="font-medium">R$ {selectedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                {unselectedItemsData.length > 0 && (
+                  <div className="flex justify-between text-orange-600">
+                    <span>Itens devolvidos ao estoque:</span>
+                    <span>{unselectedItemsData.length} item(s)</span>
+                  </div>
+                )}
+                {paymentMethod && (
+                  <div className="flex justify-between">
+                    <span>Forma de pagamento:</span>
+                    <span className="font-medium">{paymentMethod}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -412,7 +517,7 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
           </Button>
           <Button 
             onClick={handleProcess}
-            disabled={!action || selectedItems.length === 0 || processConditionalMutation.isPending}
+            disabled={!action || selectedItems.length === 0 || processConditionalMutation.isPending || (action === 'sell' && !paymentMethod)}
             className={action === 'sell' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
           >
             {processConditionalMutation.isPending ? 'Processando...' : 
