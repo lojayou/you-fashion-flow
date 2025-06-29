@@ -1,8 +1,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TimeFilter } from '@/components/TimeFilter'
 import { useDashboardData } from '@/hooks/useDashboardData'
+import { useDashboardCharts } from '@/hooks/useDashboardCharts'
+import { SalesChart } from '@/components/Charts/SalesChart'
+import { ProductsChart } from '@/components/Charts/ProductsChart'
+import { PaymentMethodsChart } from '@/components/Charts/PaymentMethodsChart'
+import { ConditionalChart } from '@/components/Charts/ConditionalChart'
 import { 
   ShoppingBag, 
   Package, 
@@ -22,6 +28,8 @@ export default function Dashboard() {
     recentConditionals,
     isLoading 
   } = useDashboardData()
+
+  const { salesData, stockData, paymentData, conditionalData } = useDashboardCharts()
 
   const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
     console.log('Period changed to:', period, customDates)
@@ -111,6 +119,42 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts Section */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Geral</TabsTrigger>
+          <TabsTrigger value="sales">Vendas</TabsTrigger>
+          <TabsTrigger value="inventory">Estoque</TabsTrigger>
+          <TabsTrigger value="conditionals">Condicionais</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SalesChart data={salesData} />
+            <PaymentMethodsChart data={paymentData} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="sales" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SalesChart data={salesData} />
+            <PaymentMethodsChart data={paymentData} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="inventory" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ProductsChart data={stockData} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="conditionals" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ConditionalChart data={conditionalData} />
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Recent Conditionals */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
