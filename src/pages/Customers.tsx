@@ -12,7 +12,8 @@ import {
   Trash2,
   FileText,
   Phone,
-  Mail
+  Mail,
+  Eye
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
@@ -20,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { CustomerForm } from '@/components/CustomerForm'
 import { CustomerExport } from '@/components/CustomerExport'
+import { CustomerOrderHistory } from '@/components/CustomerOrderHistory'
 
 interface Customer {
   id: string
@@ -38,6 +40,7 @@ export default function Customers() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [viewingOrderHistory, setViewingOrderHistory] = useState<Customer | null>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -186,6 +189,32 @@ export default function Customers() {
                   </div>
                   
                   <div className="flex items-center gap-2">
+                    <Dialog open={viewingOrderHistory?.id === customer.id} onOpenChange={(open) => !open && setViewingOrderHistory(null)}>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setViewingOrderHistory(customer)}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl">
+                        <DialogHeader>
+                          <DialogTitle>Histórico do Cliente</DialogTitle>
+                          <DialogDescription>
+                            Visualize o histórico de pedidos do cliente
+                          </DialogDescription>
+                        </DialogHeader>
+                        {viewingOrderHistory && (
+                          <CustomerOrderHistory 
+                            customerId={viewingOrderHistory.id}
+                            customerName={viewingOrderHistory.name}
+                          />
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                    
                     <Dialog open={editingCustomer?.id === customer.id} onOpenChange={(open) => !open && setEditingCustomer(null)}>
                       <DialogTrigger asChild>
                         <Button
@@ -224,6 +253,24 @@ export default function Customers() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog para histórico de pedidos */}
+      <Dialog open={!!viewingOrderHistory} onOpenChange={(open) => !open && setViewingOrderHistory(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Histórico do Cliente</DialogTitle>
+            <DialogDescription>
+              Visualize o histórico de pedidos do cliente
+            </DialogDescription>
+          </DialogHeader>
+          {viewingOrderHistory && (
+            <CustomerOrderHistory 
+              customerId={viewingOrderHistory.id}
+              customerName={viewingOrderHistory.name}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
