@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { 
   ShoppingCart, 
   Plus, 
@@ -15,9 +18,12 @@ import {
   User, 
   Calculator,
   CreditCard,
-  Calendar
+  Calendar as CalendarIcon
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 interface CartItem {
   id: string
@@ -28,13 +34,19 @@ interface CartItem {
   quantity: number
 }
 
+interface PaymentMethod {
+  type: string
+  amount: number
+}
+
 export default function PDV() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [isConditional, setIsConditional] = useState(false)
-  const [conditionalDate, setConditionalDate] = useState('')
+  const [conditionalDate, setConditionalDate] = useState<Date>()
   const [paymentMethod, setPaymentMethod] = useState('')
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [discount, setDiscount] = useState(0)
   const [amountPaid, setAmountPaid] = useState(0)
   const [observations, setObservations] = useState('')
@@ -79,10 +91,29 @@ export default function PDV() {
     setCart(cart.filter(item => item.id !== itemId))
   }
 
+  const addPaymentMethod = () => {
+    if (paymentMethod && amountPaid > 0) {
+      const newPayment: PaymentMethod = {
+        type: paymentMethod,
+        amount: amountPaid
+      }
+      setPaymentMethods([...paymentMethods, newPayment])
+      setPaymentMethod('')
+      setAmountPaid(0)
+    }
+  }
+
+  const removePaymentMethod = (index: number) => {
+    setPaymentMethods(paymentMethods.filter((_, i) => i !== index))
+  }
+
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const discountAmount = subtotal * (discount / 100)
   const total = subtotal - discountAmount
-  const change = amountPaid - total
+  const totalPaid = paymentMethod === 'custom' 
+    ? paymentMethods.reduce((sum, pm) => sum + pm.amount, 0)
+    : amountPaid
+  const change = totalPaid - total
 
   const handleFinalizeSale = () => {
     if (cart.length === 0) {
@@ -112,7 +143,15 @@ export default function PDV() {
       return
     }
 
-    const orderType = isConditional ? 'condicional' : 'venda'
+    if (!isConditional && paymentMethod === 'custom' && paymentMethods.length === 0) {
+      toast({
+        title: 'Erro',
+        description: 'Adicione pelo menos uma forma de pagamento',
+        variant: 'destructive'
+      })
+      return
+    }
+
     const orderNumber = Math.floor(Math.random() * 10000)
 
     toast({
@@ -125,8 +164,9 @@ export default function PDV() {
     setCustomerName('')
     setCustomerPhone('')
     setIsConditional(false)
-    setConditionalDate('')
+    setConditionalDate(undefined)
     setPaymentMethod('')
+    setPaymentMethods([])
     setDiscount(0)
     setAmountPaid(0)
     setObservations('')
@@ -292,7 +332,7 @@ export default function PDV() {
                 onCheckedChange={setIsConditional}
               />
               <Label className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
+                <CalendarIcon className="h-4 w-4" />
                 <span>Condicional</span>
               </Label>
             </div>
@@ -300,12 +340,34 @@ export default function PDV() {
             {isConditional ? (
               <div className="space-y-2">
                 <Label htmlFor="conditionalDate">Data de Devolução</Label>
-                <Input
-                  id="conditionalDate"
-                  type="date"
-                  value={conditionalDate}
-                  onChange={(e) => setConditionalDate(e.target.value)}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !conditionalDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {conditionalDate ? (
+                        format(conditionalDate, "dd/MM/yyyy", { locale: ptBR })
+                      ) : (
+                        <span>Selecione a data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={conditionalDate}
+                      onSelect={setConditionalDate}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             ) : (
               <>
@@ -317,36 +379,104 @@ export default function PDV() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="money">Dinheiro</SelectItem>
-                      <SelectItem value="card">Cartão</SelectItem>
+                      <SelectItem value="credit">Cartão de Crédito</SelectItem>
+                      <SelectItem value="debit">Cartão de Débito</SelectItem>
                       <SelectItem value="pix">PIX</SelectItem>
-                      <SelectItem value="transfer">Transferência</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="discount">Desconto (%)</Label>
-                    <Input
-                      id="discount"
-                      type="number"
-                      value={discount}
-                      onChange={(e) => setDiscount(Number(e.target.value))}
-                      min="0"
-                      max="100"
-                    />
+                {paymentMethod === 'custom' ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Tipo</Label>
+                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="money">Dinheiro</SelectItem>
+                            <SelectItem value="credit">Cartão de Crédito</SelectItem>
+                            <SelectItem value="debit">Cartão de Débito</SelectItem>
+                            <SelectItem value="pix">PIX</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Valor</Label>
+                        <div className="flex space-x-2">
+                          <Input
+                            type="number"
+                            value={amountPaid}
+                            onChange={(e) => setAmountPaid(Number(e.target.value))}
+                            step="0.01"
+                            placeholder="0,00"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={addPaymentMethod}
+                            disabled={!paymentMethod || amountPaid <= 0}
+                            className="bg-copper-500 hover:bg-copper-600"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {paymentMethods.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Formas de Pagamento Adicionadas</Label>
+                        <div className="space-y-2">
+                          {paymentMethods.map((pm, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 border rounded">
+                              <span className="text-sm">
+                                {pm.type === 'money' && 'Dinheiro'}
+                                {pm.type === 'credit' && 'Cartão de Crédito'}
+                                {pm.type === 'debit' && 'Cartão de Débito'}
+                                {pm.type === 'pix' && 'PIX'}
+                                : R$ {pm.amount.toFixed(2)}
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => removePaymentMethod(index)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="amountPaid">Valor Pago</Label>
-                    <Input
-                      id="amountPaid"
-                      type="number"
-                      value={amountPaid}
-                      onChange={(e) => setAmountPaid(Number(e.target.value))}
-                      step="0.01"
-                    />
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="discount">Desconto (%)</Label>
+                      <Input
+                        id="discount"
+                        type="number"
+                        value={discount}
+                        onChange={(e) => setDiscount(Number(e.target.value))}
+                        min="0"
+                        max="100"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="amountPaid">Valor Pago</Label>
+                      <Input
+                        id="amountPaid"
+                        type="number"
+                        value={amountPaid}
+                        onChange={(e) => setAmountPaid(Number(e.target.value))}
+                        step="0.01"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
           </CardContent>
@@ -370,7 +500,7 @@ export default function PDV() {
                 <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-xl font-bold text-copper-600">R$ {total.toFixed(2)}</p>
               </div>
-              {!isConditional && amountPaid > 0 && (
+              {!isConditional && totalPaid > 0 && (
                 <div>
                   <p className="text-sm text-muted-foreground">Troco</p>
                   <p className="text-lg font-medium">R$ {Math.max(0, change).toFixed(2)}</p>
