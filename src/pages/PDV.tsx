@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { 
   ShoppingCart, 
   Plus, 
@@ -24,6 +25,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CustomerSearch } from '@/components/CustomerSearch'
+import { supabase } from '@/integrations/supabase/client'
 
 interface CartItem {
   id: string
@@ -146,7 +148,7 @@ export default function PDV() {
     })
   }
 
-  const handleFinalizeSale = () => {
+  const handleFinalizeSale = async () => {
     if (cart.length === 0) {
       toast({
         title: 'Erro',
@@ -183,24 +185,105 @@ export default function PDV() {
       return
     }
 
-    const orderNumber = Math.floor(Math.random() * 10000)
+    try {
+      const orderNumber = `${isConditional ? 'COND' : 'VEND'}-${Date.now()}`
+      
+      if (isConditional) {
+        // Salvar condicional
+        const { data: conditional, error: conditionalError } = await supabase
+          .from('conditionals')
+          .insert({
+            customer_id: selectedCustomer?.id,
+            customer_name: selectedCustomer?.name || 'Cliente Avulso',
+            customer_phone: selectedCustomer?.phone || '',
+            total_value: total,
+            due_date: conditionalDate?.toISOString().split('T')[0],
+            status: 'active'
+          })
+          .select()
+          .single()
 
-    toast({
-      title: `${isConditional ? 'Condicional' : 'Venda'} realizada com sucesso!`,
-      description: `Pedido #${orderNumber} registrado${selectedCustomer ? ` para ${selectedCustomer.name}` : ''}`,
-    })
+        if (conditionalError) throw conditionalError
 
-    // Reset form
-    setCart([])
-    setSelectedCustomer(null)
-    setIsConditional(false)
-    setConditionalDate(undefined)
-    setPaymentMethod('')
-    setPaymentMethods([])
-    setDiscount(0)
-    setAmountPaid(0)
-    setObservations('')
-    setCustomPaymentType('')
+        // Salvar itens do condicional
+        const conditionalItems = cart.map(item => ({
+          conditional_id: conditional.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
+          size: item.size,
+          color: item.color
+        }))
+
+        const { error: itemsError } = await supabase
+          .from('conditional_items')
+          .insert(conditionalItems)
+
+        if (itemsError) throw itemsError
+
+      } else {
+        // Salvar venda
+        const { data: order, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            order_number: orderNumber,
+            customer_id: selectedCustomer?.id,
+            customer_name: selectedCustomer?.name || 'Cliente Avulso',
+            customer_phone: selectedCustomer?.phone || '',
+            total_amount: total,
+            payment_method: paymentMethod === 'custom' 
+              ? paymentMethods.map(pm => getPaymentMethodLabel(pm.type)).join(', ')
+              : getPaymentMethodLabel(paymentMethod),
+            status: 'confirmed'
+          })
+          .select()
+          .single()
+
+        if (orderError) throw orderError
+
+        // Salvar itens da venda
+        const orderItems = cart.map(item => ({
+          order_id: order.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity,
+          size: item.size,
+          color: item.color
+        }))
+
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems)
+
+        if (itemsError) throw itemsError
+      }
+
+      toast({
+        title: `${isConditional ? 'Condicional' : 'Venda'} realizada com sucesso!`,
+        description: `Pedido ${orderNumber} registrado${selectedCustomer ? ` para ${selectedCustomer.name}` : ''}`,
+      })
+
+      // Reset form
+      setCart([])
+      setSelectedCustomer(null)
+      setIsConditional(false)
+      setConditionalDate(undefined)
+      setPaymentMethod('')
+      setPaymentMethods([])
+      setDiscount(0)
+      setAmountPaid(0)
+      setObservations('')
+      setCustomPaymentType('')
+
+    } catch (error) {
+      console.error('Erro ao finalizar pedido:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao processar o pedido. Tente novamente.',
+        variant: 'destructive'
+      })
+    }
   }
 
   return (
@@ -520,14 +603,55 @@ export default function PDV() {
               )}
             </div>
             
-            <Button
-              onClick={handleFinalizeSale}
-              className="ml-6 bg-copper-500 hover:bg-copper-600 text-white px-8"
-              disabled={cart.length === 0}
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              {isConditional ? 'Registrar Condicional' : 'Finalizar Venda'}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  className="ml-6 bg-copper-500 hover:bg-copper-600 text-white px-8"
+                  disabled={cart.length === 0}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {isConditional ? 'Registrar Condicional' : 'Finalizar Venda'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Confirmar {isConditional ? 'Condicional' : 'Venda'}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    <div className="space-y-2">
+                      <p>
+                        Deseja confirmar {isConditional ? 'o registro desta condicional' : 'a finalização desta venda'}?
+                      </p>
+                      <div className="bg-muted p-3 rounded-lg">
+                        <p><strong>Cliente:</strong> {selectedCustomer?.name || 'Cliente Avulso'}</p>
+                        <p><strong>Total:</strong> R$ {total.toFixed(2)}</p>
+                        <p><strong>Itens:</strong> {cart.length}</p>
+                        {isConditional && conditionalDate && (
+                          <p><strong>Data de Devolução:</strong> {format(conditionalDate, "dd/MM/yyyy", { locale: ptBR })}</p>
+                        )}
+                        {!isConditional && (
+                          <p><strong>Pagamento:</strong> {
+                            paymentMethod === 'custom' 
+                              ? paymentMethods.map(pm => getPaymentMethodLabel(pm.type)).join(', ')
+                              : getPaymentMethodLabel(paymentMethod)
+                          }</p>
+                        )}
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleFinalizeSale}
+                    className="bg-copper-500 hover:bg-copper-600"
+                  >
+                    Confirmar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </CardContent>
       </Card>

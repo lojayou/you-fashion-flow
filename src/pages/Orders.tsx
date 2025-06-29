@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -42,7 +41,7 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  // Fetch orders (vendas)
+  // Fetch orders (vendas) - revalidate every 30 seconds to catch new orders
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -57,10 +56,11 @@ export default function Orders() {
         type: 'sale' as const,
         status: order.status || 'pending'
       }))
-    }
+    },
+    refetchInterval: 30000 // Revalida a cada 30 segundos
   })
 
-  // Fetch conditionals (condicionais)
+  // Fetch conditionals (condicionais) - revalidate every 30 seconds to catch new conditionals
   const { data: conditionals = [], isLoading: conditionalsLoading } = useQuery({
     queryKey: ['conditionals'],
     queryFn: async () => {
@@ -77,13 +77,14 @@ export default function Orders() {
         customer_phone: conditional.customer_phone,
         customer_id: conditional.customer_id,
         type: 'conditional' as const,
-        status: conditional.status as Order['status'], // Cast to proper status type
+        status: conditional.status as Order['status'],
         total_amount: conditional.total_value,
         created_at: conditional.created_at,
         due_date: conditional.due_date,
         created_by: conditional.created_by
       }))
-    }
+    },
+    refetchInterval: 30000 // Revalida a cada 30 segundos
   })
 
   const isLoading = ordersLoading || conditionalsLoading
