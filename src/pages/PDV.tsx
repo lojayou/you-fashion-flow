@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -137,6 +136,15 @@ export default function PDV() {
     ? paymentMethods.reduce((sum, pm) => sum + pm.amount, 0)
     : amountPaid
   const change = totalPaid - total
+
+  const handleCustomerCreated = (newCustomer: Customer) => {
+    // Automaticamente selecionar o cliente recém-cadastrado
+    setSelectedCustomer(newCustomer)
+    toast({
+      title: 'Cliente cadastrado e selecionado',
+      description: `${newCustomer.name} foi vinculado ao pedido atual`,
+    })
+  }
 
   const handleFinalizeSale = () => {
     if (cart.length === 0) {
@@ -309,6 +317,7 @@ export default function PDV() {
             <CustomerSearch 
               selectedCustomer={selectedCustomer}
               onCustomerSelect={setSelectedCustomer}
+              onCustomerCreated={handleCustomerCreated}
             />
             
             <div className="space-y-2">

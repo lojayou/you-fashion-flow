@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,9 +22,10 @@ interface Customer {
 interface CustomerSearchProps {
   selectedCustomer: Customer | null
   onCustomerSelect: (customer: Customer | null) => void
+  onCustomerCreated?: (customer: Customer) => void
 }
 
-export function CustomerSearch({ selectedCustomer, onCustomerSelect }: CustomerSearchProps) {
+export function CustomerSearch({ selectedCustomer, onCustomerSelect, onCustomerCreated }: CustomerSearchProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<Customer[]>([])
@@ -71,8 +71,28 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect }: CustomerS
     setSearchResults([])
   }
 
-  const handleCustomerAdded = () => {
+  const handleCustomerAdded = async () => {
     setIsAddingCustomer(false)
+    
+    // Se há uma callback para cliente criado, buscar o cliente mais recente para retornar
+    if (onCustomerCreated) {
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        if (error) {
+          console.error('Erro ao buscar cliente recém-criado:', error)
+        } else if (data && data.length > 0) {
+          onCustomerCreated(data[0])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar cliente recém-criado:', error)
+      }
+    }
+    
     // Realizar nova busca para mostrar o cliente recém-adicionado
     if (searchTerm.trim()) {
       handleSearch()
