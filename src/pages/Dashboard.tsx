@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TimeFilter } from '@/components/TimeFilter'
+import { useDashboardData } from '@/hooks/useDashboardData'
 import { 
   ShoppingBag, 
   Package, 
@@ -14,51 +15,30 @@ import {
 } from 'lucide-react'
 
 export default function Dashboard() {
-  // Mock data - in real app, this would come from API
-  const stats = {
-    totalConditionals: 23,
-    conditionalValue: 4560.50,
-    conditionalItems: 47,
-    pendingReturns: 8,
-    todaySales: 2340.00,
-    todayOrders: 12,
-    lowStockItems: 5,
-    overdueConditionals: 3
-  }
-
-  const recentConditionals = [
-    {
-      id: '1',
-      customerName: 'Maria Silva',
-      phone: '(11) 99999-9999',
-      items: 3,
-      value: 450.00,
-      dueDate: '2025-06-10',
-      status: 'active'
-    },
-    {
-      id: '2',
-      customerName: 'Ana Costa',
-      phone: '(11) 98888-8888',
-      items: 2,
-      value: 320.00,
-      dueDate: '2025-06-09',
-      status: 'overdue'
-    },
-    {
-      id: '3',
-      customerName: 'Julia Santos',
-      phone: '(11) 97777-7777',
-      items: 4,
-      value: 680.00,
-      dueDate: '2025-06-11',
-      status: 'active'
-    }
-  ]
+  const { 
+    conditionalStats, 
+    orderStats, 
+    lowStockCount, 
+    recentConditionals,
+    isLoading 
+  } = useDashboardData()
 
   const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
     console.log('Period changed to:', period, customDates)
     // Aqui você implementaria a lógica para filtrar os dados baseado no período
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">Carregando dados...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -80,10 +60,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-copper-600">
-              R$ {stats.conditionalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {conditionalStats.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.conditionalItems} peças em {stats.totalConditionals} condicionais
+              {conditionalStats.total} condicionais ativas
             </p>
           </CardContent>
         </Card>
@@ -95,10 +75,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              R$ {stats.todaySales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {orderStats.totalSales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.todayOrders} pedidos finalizados
+              {orderStats.totalOrders} pedidos finalizados
             </p>
           </CardContent>
         </Card>
@@ -109,9 +89,9 @@ export default function Dashboard() {
             <Clock className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.pendingReturns}</div>
+            <div className="text-2xl font-bold text-orange-600">{conditionalStats.overdue}</div>
             <p className="text-xs text-muted-foreground">
-              Condicionais a vencer
+              Condicionais a vencer/atrasadas
             </p>
           </CardContent>
         </Card>
@@ -123,10 +103,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {stats.lowStockItems + stats.overdueConditionals}
+              {lowStockCount + conditionalStats.overdue}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.lowStockItems} estoque baixo, {stats.overdueConditionals} atrasados
+              {lowStockCount} estoque baixo, {conditionalStats.overdue} atrasados
             </p>
           </CardContent>
         </Card>
@@ -146,32 +126,38 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentConditionals.map((conditional) => (
-                <div 
-                  key={conditional.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">{conditional.customerName}</p>
-                    <p className="text-sm text-muted-foreground">{conditional.phone}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Vence em: {new Date(conditional.dueDate).toLocaleDateString('pt-BR')}
-                    </p>
+              {recentConditionals.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  Nenhuma condicional encontrada
+                </p>
+              ) : (
+                recentConditionals.map((conditional) => (
+                  <div 
+                    key={conditional.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium">{conditional.customerName}</p>
+                      <p className="text-sm text-muted-foreground">{conditional.phone}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Vence em: {new Date(conditional.dueDate).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">
+                        R$ {conditional.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{conditional.items} peças</p>
+                      <Badge 
+                        variant={conditional.status === 'overdue' ? 'destructive' : 'secondary'}
+                        className="mt-1"
+                      >
+                        {conditional.status === 'overdue' ? 'Atrasado' : 'Ativo'}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">
-                      R$ {conditional.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{conditional.items} peças</p>
-                    <Badge 
-                      variant={conditional.status === 'overdue' ? 'destructive' : 'secondary'}
-                      className="mt-1"
-                    >
-                      {conditional.status === 'overdue' ? 'Atrasado' : 'Ativo'}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -183,30 +169,32 @@ export default function Dashboard() {
               <span>Resumo Operacional</span>
             </CardTitle>
             <CardDescription>
-              Principais indicadores do dia
+              Principais indicadores do sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Total de Condicionais</span>
-                <span className="font-medium">{stats.totalConditionals}</span>
+                <span className="font-medium">{conditionalStats.total}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Peças em Condicional</span>
-                <span className="font-medium">{stats.conditionalItems}</span>
+                <span className="text-sm">Valor Total em Condicional</span>
+                <span className="font-medium">
+                  R$ {conditionalStats.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Vendas do Dia</span>
-                <span className="font-medium">{stats.todayOrders} pedidos</span>
+                <span className="font-medium">{orderStats.totalOrders} pedidos</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Itens com Estoque Baixo</span>
-                <span className="font-medium text-orange-600">{stats.lowStockItems}</span>
+                <span className="font-medium text-orange-600">{lowStockCount}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm">Condicionais Atrasados</span>
-                <span className="font-medium text-red-600">{stats.overdueConditionals}</span>
+                <span className="font-medium text-red-600">{conditionalStats.overdue}</span>
               </div>
             </div>
           </CardContent>
