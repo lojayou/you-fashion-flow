@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
   ShoppingCart, 
   Plus, 
@@ -66,12 +67,23 @@ export default function PDV() {
   const [customPaymentType, setCustomPaymentType] = useState('')
   const { toast } = useToast()
 
-  // Mock products for demo
+  // Mock products for demo - expanded list with more products
   const mockProducts = [
-    { id: '1', name: 'Blusa Elegante', price: 89.90, stock: 10 },
-    { id: '2', name: 'Calça Jeans', price: 129.90, stock: 8 },
-    { id: '3', name: 'Vestido Festa', price: 199.90, stock: 5 },
-    { id: '4', name: 'Saia Midi', price: 79.90, stock: 12 }
+    { id: '1', name: 'Blusa Elegante', price: 89.90, stock: 10, sku: 'BL001' },
+    { id: '2', name: 'Calça Jeans', price: 129.90, stock: 8, sku: 'CJ002' },
+    { id: '3', name: 'Vestido Festa', price: 199.90, stock: 5, sku: 'VF003' },
+    { id: '4', name: 'Saia Midi', price: 79.90, stock: 12, sku: 'SM004' },
+    { id: '5', name: 'Camisa Social', price: 95.90, stock: 15, sku: 'CS005' },
+    { id: '6', name: 'Shorts Jeans', price: 69.90, stock: 20, sku: 'SJ006' },
+    { id: '7', name: 'Blazer Feminino', price: 189.90, stock: 6, sku: 'BF007' },
+    { id: '8', name: 'Calça Legging', price: 49.90, stock: 25, sku: 'CL008' },
+    { id: '9', name: 'Top Cropped', price: 39.90, stock: 18, sku: 'TC009' },
+    { id: '10', name: 'Vestido Casual', price: 89.90, stock: 14, sku: 'VC010' },
+    { id: '11', name: 'Jaqueta Jeans', price: 139.90, stock: 9, sku: 'JJ011' },
+    { id: '12', name: 'Regata Básica', price: 29.90, stock: 30, sku: 'RB012' },
+    { id: '13', name: 'Calça Pantalona', price: 119.90, stock: 11, sku: 'CP013' },
+    { id: '14', name: 'Body Feminino', price: 59.90, stock: 16, sku: 'BF014' },
+    { id: '15', name: 'Cardigan Longo', price: 109.90, stock: 7, sku: 'CL015' }
   ]
 
   const addToCart = (productId: string) => {
@@ -312,28 +324,30 @@ export default function PDV() {
             <CardDescription>Selecione produtos para adicionar</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {mockProducts.map((product) => (
-                <div 
-                  key={product.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      R$ {product.price.toFixed(2)} • Estoque: {product.stock}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => addToCart(product.id)}
-                    className="bg-copper-500 hover:bg-copper-600"
+            <ScrollArea className="h-96">
+              <div className="space-y-3 pr-4">
+                {mockProducts.map((product) => (
+                  <div 
+                    key={product.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div>
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        SKU: {product.sku} • R$ {product.price.toFixed(2)} • Estoque: {product.stock}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => addToCart(product.id)}
+                      className="bg-copper-500 hover:bg-copper-600"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
           </CardContent>
         </Card>
 
