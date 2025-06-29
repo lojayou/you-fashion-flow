@@ -22,7 +22,7 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
         .select('total_amount, created_at')
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .in('status', ['delivered', 'completed']) // Pedidos finalizados
+        .eq('status', 'delivered') // Apenas pedidos entregues
       
       if (error) throw error
 
@@ -91,7 +91,7 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
         .select('payment_method, total_amount')
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .in('status', ['delivered', 'completed']) // Pedidos finalizados
+        .eq('status', 'delivered') // Apenas pedidos entregues
       
       if (error) throw error
 
