@@ -31,7 +31,7 @@ export function useProductSearch() {
     try {
       console.log('=== INICIANDO BUSCA POR SKU ===')
       console.log('Termo de busca:', term)
-      console.log('Termo após trim:', term.trim())
+      console.log('URL Supabase:', supabase.supabaseUrl)
       
       let query = supabase
         .from('products')
@@ -44,82 +44,87 @@ export function useProductSearch() {
           min_stock,
           status
         `)
-        .eq('status', 'active')
 
+      // Se há termo de busca, aplicar filtro por SKU
       if (term.trim()) {
-        console.log('Aplicando filtro por SKU com termo:', term)
-        query = query.ilike('sku', `%${term}%`)
-      } else {
-        console.log('Carregando todos os produtos ativos (sem filtro)')
+        console.log('Aplicando filtro SKU:', term.trim())
+        query = query.ilike('sku', `%${term.trim()}%`)
       }
 
-      console.log('Executando query...')
-      const { data, error } = await query
+      // Sempre buscar apenas produtos ativos
+      query = query.eq('status', 'active')
+
+      console.log('Executando query Supabase...')
+      const { data, error, status, statusText } = await query
         .order('name')
         .limit(50)
 
-      console.log('Resposta da query:', { data, error })
+      console.log('Resposta completa:', { data, error, status, statusText })
 
       if (error) {
-        console.error('Erro na consulta Supabase:', error)
-        throw error
+        console.error('ERRO SUPABASE:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        throw new Error(`Erro na consulta: ${error.message}`)
       }
-
-      console.log('Dados retornados:', {
-        total: data?.length || 0,
-        produtos: data?.map(p => ({ sku: p.sku, name: p.name }))
-      })
 
       if (!data) {
-        console.log('Nenhum dado retornado (data é null/undefined)')
+        console.log('Dados nulos retornados')
         setProducts([])
         return
       }
 
-      if (data.length === 0) {
-        console.log('Array de dados está vazio')
-        setProducts([])
-        return
-      }
-
-      // Formatação dos produtos com validação
-      const formattedProducts = data.map(product => {
-        console.log('Formatando produto:', product)
-        return {
-          id: product.id,
-          name: product.name || 'Nome não informado',
-          sku: product.sku || 'SKU não informado',
-          sale_price: Number(product.sale_price) || 0,
-          stock: Number(product.stock) || 0,
-          min_stock: Number(product.min_stock) || 0,
-          status: product.status as 'active' | 'inactive',
-          brand: undefined,
-          category: undefined
-        }
+      console.log(`${data.length} produto(s) encontrado(s):`)
+      data.forEach(product => {
+        console.log(`- SKU: ${product.sku}, Nome: ${product.name}, Status: ${product.status}`)
       })
 
-      console.log('Produtos formatados:', formattedProducts)
+      // Formatação simples dos produtos
+      const formattedProducts = data.map(product => ({
+        id: product.id,
+        name: product.name || 'Nome não informado',
+        sku: product.sku || 'SKU não informado',
+        sale_price: Number(product.sale_price) || 0,
+        stock: Number(product.stock) || 0,
+        min_stock: Number(product.min_stock) || 0,
+        status: product.status as 'active' | 'inactive'
+      }))
+
+      console.log('Produtos formatados para estado:', formattedProducts)
+      setProducts(formattedProducts)
       console.log('=== BUSCA CONCLUÍDA COM SUCESSO ===')
       
-      setProducts(formattedProducts)
     } catch (err: any) {
       console.error('=== ERRO NA BUSCA ===')
       console.error('Erro completo:', err)
-      console.error('Mensagem do erro:', err.message)
+      console.error('Tipo do erro:', typeof err)
       console.error('Stack trace:', err.stack)
       
-      setError(`Erro ao buscar produtos: ${err.message || 'Erro desconhecido'}`)
+      const errorMessage = err.message || err.toString() || 'Erro desconhecido na busca'
+      setError(errorMessage)
       setProducts([])
+      
+      // Log adicional para debug
+      console.error('Estado após erro:', {
+        error: errorMessage,
+        productsLength: 0,
+        isLoading: false
+      })
     } finally {
       setIsLoading(false)
       console.log('=== FINALIZANDO BUSCA ===')
     }
   }
 
+  // Debounce para busca automática
   useEffect(() => {
-    console.log('useEffect disparado com searchTerm:', searchTerm)
+    console.log('useEffect disparado - searchTerm:', searchTerm)
+    
     const timeoutId = setTimeout(() => {
-      console.log('Executando busca após debounce de 300ms')
+      console.log('Executando busca após debounce')
       searchProducts(searchTerm)
     }, 300)
 
@@ -129,9 +134,9 @@ export function useProductSearch() {
     }
   }, [searchTerm])
 
-  // Carregar produtos iniciais
+  // Carregar produtos iniciais ao montar o componente
   useEffect(() => {
-    console.log('Carregando produtos iniciais')
+    console.log('Hook montado - carregando produtos iniciais')
     searchProducts('')
   }, [])
 
@@ -140,6 +145,8 @@ export function useProductSearch() {
     searchTerm,
     setSearchTerm,
     isLoading,
-    error
+    error,
+    // Função auxiliar para busca manual
+    manualSearch: searchProducts
   }
 }
