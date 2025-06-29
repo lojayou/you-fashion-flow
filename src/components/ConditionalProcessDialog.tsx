@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -22,8 +23,20 @@ interface ConditionalProcessDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+interface ConditionalItem {
+  id: string
+  conditional_id: string
+  product_id: string
+  product_name: string
+  quantity: number
+  unit_price: number
+  size?: string
+  color?: string
+}
+
 export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: ConditionalProcessDialogProps) {
   const [action, setAction] = useState<'sell' | 'return' | ''>('')
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -62,13 +75,30 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
     enabled: !!conditionalId && open
   })
 
+  // Reset selected items when dialog opens/closes or items change
+  useState(() => {
+    if (open && items.length > 0) {
+      setSelectedItems(items.map(item => item.id))
+    } else if (!open) {
+      setSelectedItems([])
+      setAction('')
+    }
+  }, [open, items])
+
   // Process conditional mutation
   const processConditionalMutation = useMutation({
-    mutationFn: async ({ action }: { action: 'sell' | 'return' }) => {
+    mutationFn: async ({ action, itemIds }: { action: 'sell' | 'return', itemIds: string[] }) => {
       if (!conditionalId) throw new Error('ID do condicional não encontrado')
 
+      const selectedItemsData = items.filter(item => itemIds.includes(item.id))
+      const totalSelectedValue = selectedItemsData.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
+
       if (action === 'sell') {
-        // Convert conditional to sale
+        if (selectedItemsData.length === 0) {
+          throw new Error('Selecione pelo menos um item para finalizar a venda')
+        }
+
+        // Convert selected items to sale
         const orderNumber = `PDV-${Date.now()}`
         
         // Create order
@@ -79,7 +109,7 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
             customer_name: conditional?.customer_name,
             customer_phone: conditional?.customer_phone,
             customer_id: conditional?.customer_id,
-            total_amount: conditional?.total_value,
+            total_amount: totalSelectedValue,
             status: 'confirmed',
             payment_method: 'Condicional Finalizada'
           })
@@ -88,8 +118,8 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
 
         if (orderError) throw orderError
 
-        // Create order items from conditional items
-        const orderItems = items.map(item => ({
+        // Create order items from selected conditional items
+        const orderItems = selectedItemsData.map(item => ({
           order_id: newOrder.id,
           product_id: item.product_id,
           product_name: item.product_name,
@@ -106,35 +136,103 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
 
         if (itemsError) throw itemsError
 
-        // Update conditional status to sold
-        const { error: updateError } = await supabase
-          .from('conditionals')
-          .update({ status: 'sold' })
-          .eq('id', conditionalId)
+        // Remove selected items from conditional
+        const { error: deleteError } = await supabase
+          .from('conditional_items')
+          .delete()
+          .in('id', itemIds)
 
-        if (updateError) throw updateError
+        if (deleteError) throw deleteError
+
+        // Check if there are remaining items
+        const remainingItems = items.filter(item => !itemIds.includes(item.id))
+        
+        if (remainingItems.length === 0) {
+          // No remaining items, mark conditional as sold
+          const { error: updateError } = await supabase
+            .from('conditionals')
+            .update({ status: 'sold' })
+            .eq('id', conditionalId)
+
+          if (updateError) throw updateError
+        } else {
+          // Update conditional total value with remaining items
+          const remainingValue = remainingItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
+          
+          const { error: updateError } = await supabase
+            .from('conditionals')
+            .update({ total_value: remainingValue })
+            .eq('id', conditionalId)
+
+          if (updateError) throw updateError
+        }
 
       } else if (action === 'return') {
-        // Update conditional status to returned
-        const { error: updateError } = await supabase
-          .from('conditionals')
-          .update({ status: 'returned' })
-          .eq('id', conditionalId)
+        if (selectedItemsData.length === 0) {
+          throw new Error('Selecione pelo menos um item para devolver')
+        }
 
-        if (updateError) throw updateError
+        // Remove selected items from conditional
+        const { error: deleteError } = await supabase
+          .from('conditional_items')
+          .delete()
+          .in('id', itemIds)
+
+        if (deleteError) throw deleteError
+
+        // Check if there are remaining items
+        const remainingItems = items.filter(item => !itemIds.includes(item.id))
+        
+        if (remainingItems.length === 0) {
+          // No remaining items, mark conditional as returned
+          const { error: updateError } = await supabase
+            .from('conditionals')
+            .update({ status: 'returned' })
+            .eq('id', conditionalId)
+
+          if (updateError) throw updateError
+        } else {
+          // Update conditional total value with remaining items
+          const remainingValue = remainingItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
+          
+          const { error: updateError } = await supabase
+            .from('conditionals')
+            .update({ total_value: remainingValue })
+            .eq('id', conditionalId)
+
+          if (updateError) throw updateError
+        }
       }
     },
     onSuccess: (_, variables) => {
+      const selectedItemsData = items.filter(item => variables.itemIds.includes(item.id))
+      const remainingItems = items.filter(item => !variables.itemIds.includes(item.id))
+      
+      let message = ''
+      if (variables.action === 'sell') {
+        if (remainingItems.length > 0) {
+          message = `${selectedItemsData.length} item(s) vendido(s) com sucesso! ${remainingItems.length} item(s) permanecem na condicional.`
+        } else {
+          message = 'Condicional finalizada como venda com sucesso!'
+        }
+      } else {
+        if (remainingItems.length > 0) {
+          message = `${selectedItemsData.length} item(s) devolvido(s) com sucesso! ${remainingItems.length} item(s) permanecem na condicional.`
+        } else {
+          message = 'Condicional marcada como devolvida com sucesso!'
+        }
+      }
+
       toast({
         title: 'Sucesso!',
-        description: variables.action === 'sell' 
-          ? 'Condicional finalizada como venda com sucesso!'
-          : 'Condicional marcada como devolvida com sucesso!',
+        description: message,
       })
+      
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       queryClient.invalidateQueries({ queryKey: ['conditionals'] })
       onOpenChange(false)
       setAction('')
+      setSelectedItems([])
     },
     onError: (error) => {
       toast({
@@ -146,17 +244,35 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
   })
 
   const handleProcess = () => {
-    if (!action) return
-    processConditionalMutation.mutate({ action })
+    if (!action || selectedItems.length === 0) return
+    processConditionalMutation.mutate({ action, itemIds: selectedItems })
+  }
+
+  const handleItemToggle = (itemId: string) => {
+    setSelectedItems(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedItems.length === items.length) {
+      setSelectedItems([])
+    } else {
+      setSelectedItems(items.map(item => item.id))
+    }
   }
 
   if (!conditional) return null
 
   const isOverdue = conditional.due_date && new Date(conditional.due_date) < new Date()
+  const selectedItemsData = items.filter(item => selectedItems.includes(item.id))
+  const selectedTotal = selectedItemsData.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Processar Condicional #{conditional.id.slice(0, 8)}</span>
@@ -166,7 +282,7 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
             </div>
           </DialogTitle>
           <DialogDescription>
-            Finalize a condicional como venda ou marque como devolvida
+            Selecione os itens para processar. Você pode vender alguns itens e devolver outros.
           </DialogDescription>
         </DialogHeader>
 
@@ -197,8 +313,8 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Valor Total</p>
-                <p className="font-medium text-lg text-green-600">
+                <p className="text-sm text-muted-foreground">Valor Total Original</p>
+                <p className="font-medium text-lg text-blue-600">
                   R$ {Number(conditional.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -211,12 +327,23 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
             </div>
           </div>
 
-          {/* Items */}
+          {/* Items Selection */}
           <div>
-            <h3 className="font-semibold mb-2">Itens</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Itens ({selectedItems.length} de {items.length} selecionados)</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAll}
+              >
+                {selectedItems.length === items.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+              </Button>
+            </div>
+            
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">Sel.</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Variações</TableHead>
                   <TableHead className="text-center">Qtd</TableHead>
@@ -226,7 +353,13 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className={selectedItems.includes(item.id) ? 'bg-blue-50' : ''}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedItems.includes(item.id)}
+                        onCheckedChange={() => handleItemToggle(item.id)}
+                      />
+                    </TableCell>
                     <TableCell>{item.product_name}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -245,11 +378,22 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
                 ))}
               </TableBody>
             </Table>
+
+            {selectedItems.length > 0 && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total dos Itens Selecionados:</span>
+                  <span className="text-lg font-bold text-blue-600">
+                    R$ {selectedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Selection */}
           <div>
-            <h3 className="font-semibold mb-2">Ação</h3>
+            <h3 className="font-semibold mb-2">Ação para Itens Selecionados</h3>
             <Select value={action} onValueChange={(value: 'sell' | 'return') => setAction(value)}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Selecione uma ação" />
@@ -268,12 +412,12 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
           </Button>
           <Button 
             onClick={handleProcess}
-            disabled={!action || processConditionalMutation.isPending}
+            disabled={!action || selectedItems.length === 0 || processConditionalMutation.isPending}
             className={action === 'sell' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
           >
             {processConditionalMutation.isPending ? 'Processando...' : 
-             action === 'sell' ? 'Finalizar Venda' : 
-             action === 'return' ? 'Marcar como Devolvida' : 'Processar'}
+             action === 'sell' ? `Vender ${selectedItems.length} Item(s)` : 
+             action === 'return' ? `Devolver ${selectedItems.length} Item(s)` : 'Processar'}
           </Button>
         </DialogFooter>
       </DialogContent>
