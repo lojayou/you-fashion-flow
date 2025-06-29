@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import {
   Dialog,
@@ -396,7 +395,7 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
-                  <TableRow key={item.id} className={selectedItems.includes(item.id) ? 'bg-blue-50' : ''}>
+                  <TableRow key={item.id} className={selectedItems.includes(item.id) ? 'bg-copper-50/20 border-copper-200' : ''}>
                     <TableCell>
                       <Checkbox
                         checked={selectedItems.includes(item.id)}
@@ -424,17 +423,17 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
 
             {selectedItems.length > 0 && (
               <div className="mt-4 space-y-3">
-                <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="p-4 bg-copper-50/30 border border-copper-200 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Total dos Itens Selecionados:</span>
-                    <span className="text-lg font-bold text-blue-600">
+                    <span className="text-lg font-bold text-copper-600">
                       R$ {selectedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
                 
                 {action === 'sell' && unselectedItemsData.length > 0 && (
-                  <div className="p-4 bg-orange-50 rounded-lg">
+                  <div className="p-4 bg-orange-50/30 border border-orange-200 rounded-lg">
                     <div className="flex justify-between items-center">
                       <span className="font-medium">Itens que voltarão ao estoque:</span>
                       <span className="text-lg font-bold text-orange-600">
@@ -483,7 +482,7 @@ export function ConditionalProcessDialog({ conditionalId, open, onOpenChange }: 
 
           {/* Sale Summary */}
           {action === 'sell' && selectedItems.length > 0 && (
-            <div className="p-4 bg-green-50 rounded-lg border">
+            <div className="p-4 bg-green-50/30 border border-green-200 rounded-lg">
               <h4 className="font-semibold text-green-800 mb-2">Resumo da Venda</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
