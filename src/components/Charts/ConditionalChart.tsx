@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
-import { Clock, AlertTriangle } from 'lucide-react'
+import { Clock } from 'lucide-react'
 
 const chartConfig = {
   active: {
@@ -43,6 +43,7 @@ export function ConditionalChart({ data }: ConditionalChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              tick={{ fill: 'hsl(var(--muted-foreground))' }}
               tickFormatter={(value) => {
                 const date = new Date(value)
                 return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
@@ -58,14 +59,14 @@ export function ConditionalChart({ data }: ConditionalChartProps) {
               type="monotone"
               stroke="var(--color-active)"
               strokeWidth={2}
-              dot={false}
+              dot={{ fill: 'var(--color-active)', strokeWidth: 2, r: 4 }}
             />
             <Line
               dataKey="overdue"
               type="monotone"
               stroke="var(--color-overdue)"
               strokeWidth={2}
-              dot={false}
+              dot={{ fill: 'var(--color-overdue)', strokeWidth: 2, r: 4 }}
             />
           </LineChart>
         </ChartContainer>

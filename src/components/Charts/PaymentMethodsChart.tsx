@@ -5,21 +5,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { CreditCard } from 'lucide-react'
 
 const chartConfig = {
-  pix: {
-    label: "PIX",
-    color: "hsl(var(--chart-1))",
-  },
-  cartao: {
-    label: "Cartão",
-    color: "hsl(var(--chart-2))",
-  },
-  dinheiro: {
-    label: "Dinheiro",
-    color: "hsl(var(--chart-3))",
-  },
-  outros: {
-    label: "Outros",
-    color: "hsl(var(--chart-4))",
+  value: {
+    label: "Valor",
   },
 }
 
@@ -55,7 +42,8 @@ export function PaymentMethodsChart({ data }: PaymentMethodsChartProps) {
               dataKey="value"
               nameKey="method"
               innerRadius={60}
-              strokeWidth={5}
+              strokeWidth={2}
+              stroke="hsl(var(--background))"
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />

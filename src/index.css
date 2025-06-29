@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -62,6 +63,13 @@
     --fashion-pink: 320 85% 75%;
     --fashion-purple: 280 80% 70%;
     --fashion-cream: 45 100% 95%;
+
+    /* Chart colors - light mode */
+    --chart-1: 142 76% 36%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 45 93% 47%;
+    --chart-4: 271 91% 65%;
+    --chart-5: 0 84% 60%;
   }
 
   .dark {
@@ -119,6 +127,13 @@
     --fashion-pink: 320 75% 65%;
     --fashion-purple: 280 70% 60%;
     --fashion-cream: 45 50% 85%;
+
+    /* Chart colors - dark mode */
+    --chart-1: 142 70% 45%;
+    --chart-2: 217 91% 70%;
+    --chart-3: 45 93% 58%;
+    --chart-4: 271 91% 75%;
+    --chart-5: 0 84% 70%;
   }
 }
 

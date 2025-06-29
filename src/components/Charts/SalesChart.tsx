@@ -38,6 +38,7 @@ export function SalesChart({ data }: SalesChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              tick={{ fill: 'hsl(var(--muted-foreground))' }}
               tickFormatter={(value) => {
                 const date = new Date(value)
                 return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
@@ -54,7 +55,7 @@ export function SalesChart({ data }: SalesChartProps) {
               fill="var(--color-sales)"
               fillOpacity={0.4}
               stroke="var(--color-sales)"
-              stackId="a"
+              strokeWidth={2}
             />
           </AreaChart>
         </ChartContainer>

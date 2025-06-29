@@ -99,12 +99,10 @@ export function useDashboardCharts() {
         paymentMethods.set(method, current + parseFloat(order.total_amount.toString()))
       })
       
-      const colors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))']
-      
       return Array.from(paymentMethods.entries()).map(([method, value], index) => ({
         method,
         value: Math.round(value * 100) / 100,
-        fill: colors[index % colors.length]
+        fill: `hsl(var(--chart-${(index % 5) + 1}))`
       }))
     }
   })

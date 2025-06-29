@@ -43,6 +43,7 @@ export function ProductsChart({ data }: ProductsChartProps) {
               tickLine={false}
               tickMargin={10}
               axisLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))' }}
               tickFormatter={(value) => value.slice(0, 10)}
             />
             <YAxis hide />
