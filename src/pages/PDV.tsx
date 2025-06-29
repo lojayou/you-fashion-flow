@@ -19,13 +19,16 @@ import {
   User, 
   Calculator,
   CreditCard,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Loader2
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CustomerSearch } from '@/components/CustomerSearch'
+import { ProductVariationSelector } from '@/components/ProductVariationSelector'
+import { useProducts } from '@/hooks/useProducts'
 import { supabase } from '@/integrations/supabase/client'
 
 interface CartItem {
@@ -67,39 +70,30 @@ export default function PDV() {
   const [customPaymentType, setCustomPaymentType] = useState('')
   const { toast } = useToast()
 
-  // Mock products for demo - expanded list with more products
-  const mockProducts = [
-    { id: '1', name: 'Blusa Elegante', price: 89.90, stock: 10, sku: 'BL001' },
-    { id: '2', name: 'Calça Jeans', price: 129.90, stock: 8, sku: 'CJ002' },
-    { id: '3', name: 'Vestido Festa', price: 199.90, stock: 5, sku: 'VF003' },
-    { id: '4', name: 'Saia Midi', price: 79.90, stock: 12, sku: 'SM004' },
-    { id: '5', name: 'Camisa Social', price: 95.90, stock: 15, sku: 'CS005' },
-    { id: '6', name: 'Shorts Jeans', price: 69.90, stock: 20, sku: 'SJ006' },
-    { id: '7', name: 'Blazer Feminino', price: 189.90, stock: 6, sku: 'BF007' },
-    { id: '8', name: 'Calça Legging', price: 49.90, stock: 25, sku: 'CL008' },
-    { id: '9', name: 'Top Cropped', price: 39.90, stock: 18, sku: 'TC009' },
-    { id: '10', name: 'Vestido Casual', price: 89.90, stock: 14, sku: 'VC010' },
-    { id: '11', name: 'Jaqueta Jeans', price: 139.90, stock: 9, sku: 'JJ011' },
-    { id: '12', name: 'Regata Básica', price: 29.90, stock: 30, sku: 'RB012' },
-    { id: '13', name: 'Calça Pantalona', price: 119.90, stock: 11, sku: 'CP013' },
-    { id: '14', name: 'Body Feminino', price: 59.90, stock: 16, sku: 'BF014' },
-    { id: '15', name: 'Cardigan Longo', price: 109.90, stock: 7, sku: 'CL015' }
-  ]
+  // Use real products from database
+  const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useProducts()
 
-  const addToCart = (productId: string) => {
-    const product = mockProducts.find(p => p.id === productId)
+  const addToCart = (productId: string, color: string, size: string) => {
+    const product = products.find(p => p.id === productId)
     if (!product) return
+
+    console.log('Adicionando ao carrinho:', { productId, color, size, product })
 
     const newItem: CartItem = {
       id: Date.now().toString(),
       name: product.name,
-      size: 'M',
-      color: 'Azul',
-      price: product.price,
+      size: size || 'Único',
+      color: color || 'Padrão',
+      price: product.sale_price,
       quantity: 1
     }
 
     setCart([...cart, newItem])
+    
+    toast({
+      title: 'Produto adicionado',
+      description: `${product.name} foi adicionado ao carrinho`,
+    })
   }
 
   const updateQuantity = (itemId: string, quantity: number) => {
@@ -324,30 +318,65 @@ export default function PDV() {
             <CardDescription>Selecione produtos para adicionar</CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-96">
-              <div className="space-y-3 pr-4">
-                {mockProducts.map((product) => (
-                  <div 
-                    key={product.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        SKU: {product.sku} • R$ {product.price.toFixed(2)} • Estoque: {product.stock}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => addToCart(product.id)}
-                      className="bg-copper-500 hover:bg-copper-600"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+            {isLoadingProducts ? (
+              <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="ml-2">Carregando produtos...</span>
               </div>
-            </ScrollArea>
+            ) : productsError ? (
+              <div className="text-center text-red-500 h-96 flex items-center justify-center">
+                <div>
+                  <p>Erro ao carregar produtos</p>
+                  <p className="text-sm">{productsError.message}</p>
+                </div>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center text-muted-foreground h-96 flex items-center justify-center">
+                <p>Nenhum produto ativo com estoque disponível</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-96">
+                <div className="space-y-3 pr-4">
+                  {products.map((product) => (
+                    <div 
+                      key={product.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          SKU: {product.sku} • R$ {product.sale_price.toFixed(2)} • Estoque: {product.stock}
+                        </p>
+                        {product.description && (
+                          <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
+                        )}
+                        {(product.colors?.length > 0 || product.sizes?.length > 0) && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {product.colors?.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {product.colors.length} cor{product.colors.length > 1 ? 'es' : ''}
+                              </Badge>
+                            )}
+                            {product.sizes?.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {product.sizes.length} tamanho{product.sizes.length > 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="ml-4">
+                        <ProductVariationSelector
+                          product={product}
+                          onAddToCart={addToCart}
+                          disabled={product.stock === 0}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </CardContent>
         </Card>
 
