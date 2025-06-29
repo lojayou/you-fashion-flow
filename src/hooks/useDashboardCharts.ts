@@ -1,30 +1,41 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import { TimeFilterOption, DateRange, getDateRangeFromPeriod } from '@/utils/dateFilters'
 
-export function useDashboardCharts() {
-  // Dados de vendas dos últimos 7 dias
+interface DashboardChartsOptions {
+  period?: TimeFilterOption
+  customDates?: DateRange
+}
+
+export function useDashboardCharts(options: DashboardChartsOptions = {}) {
+  const { period = 'today', customDates } = options
+  const dateRange = getDateRangeFromPeriod(period, customDates)
+
+  // Dados de vendas com filtro de data
   const { data: salesData } = useQuery({
-    queryKey: ['sales-chart-data'],
+    queryKey: ['sales-chart-data', period, customDates],
     queryFn: async () => {
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      
       const { data: orders, error } = await supabase
         .from('orders')
         .select('total_amount, created_at')
-        .gte('created_at', sevenDaysAgo.toISOString())
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
         .eq('status', 'delivered')
       
       if (error) throw error
 
-      // Agrupar vendas por dia
+      // Criar mapa de vendas diárias baseado no período
       const dailySales = new Map<string, number>()
       
-      // Inicializar todos os dias dos últimos 7 dias com 0
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date()
-        date.setDate(date.getDate() - i)
+      // Calcular quantos dias entre from e to
+      const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
+      const maxDays = Math.min(daysDiff, 30) // Limitar a 30 dias para performance
+      
+      // Inicializar dias no período
+      for (let i = 0; i < maxDays; i++) {
+        const date = new Date(dateRange.from)
+        date.setDate(date.getDate() + i)
         const dateStr = date.toISOString().split('T')[0]
         dailySales.set(dateStr, 0)
       }
@@ -43,50 +54,15 @@ export function useDashboardCharts() {
     }
   })
 
-  // Dados de estoque por categoria
-  const { data: stockData } = useQuery({
-    queryKey: ['stock-chart-data'],
-    queryFn: async () => {
-      const { data: products, error } = await supabase
-        .from('products')
-        .select(`
-          stock,
-          min_stock,
-          categories(name)
-        `)
-        .eq('status', 'active')
-      
-      if (error) throw error
-
-      const categoryStock = new Map<string, { stock: number, lowStock: number }>()
-      
-      products?.forEach(product => {
-        const categoryName = product.categories?.name || 'Sem Categoria'
-        const current = categoryStock.get(categoryName) || { stock: 0, lowStock: 0 }
-        
-        current.stock += product.stock || 0
-        if ((product.stock || 0) <= (product.min_stock || 5)) {
-          current.lowStock += 1
-        }
-        
-        categoryStock.set(categoryName, current)
-      })
-      
-      return Array.from(categoryStock.entries()).map(([category, data]) => ({
-        category,
-        stock: data.stock,
-        lowStock: data.lowStock
-      }))
-    }
-  })
-
-  // Dados de métodos de pagamento
+  // Dados de métodos de pagamento com filtro de data
   const { data: paymentData } = useQuery({
-    queryKey: ['payment-methods-chart-data'],
+    queryKey: ['payment-methods-chart-data', period, customDates],
     queryFn: async () => {
       const { data: orders, error } = await supabase
         .from('orders')
         .select('payment_method, total_amount')
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
         .eq('status', 'delivered')
       
       if (error) throw error
@@ -107,27 +83,29 @@ export function useDashboardCharts() {
     }
   })
 
-  // Dados de condicionais dos últimos 7 dias
+  // Dados de condicionais com filtro de data
   const { data: conditionalData } = useQuery({
-    queryKey: ['conditional-chart-data'],
+    queryKey: ['conditional-chart-data', period, customDates],
     queryFn: async () => {
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      
       const { data: conditionals, error } = await supabase
         .from('conditionals')
         .select('status, due_date, created_at')
-        .gte('created_at', sevenDaysAgo.toISOString())
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
       
       if (error) throw error
 
-      // Agrupar condicionais por dia
+      // Criar mapa de condicionais diárias baseado no período
       const dailyConditionals = new Map<string, { active: number, overdue: number }>()
       
-      // Inicializar todos os dias dos últimos 7 dias
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date()
-        date.setDate(date.getDate() - i)
+      // Calcular quantos dias entre from e to
+      const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
+      const maxDays = Math.min(daysDiff, 30) // Limitar a 30 dias para performance
+      
+      // Inicializar dias no período
+      for (let i = 0; i < maxDays; i++) {
+        const date = new Date(dateRange.from)
+        date.setDate(date.getDate() + i)
         const dateStr = date.toISOString().split('T')[0]
         dailyConditionals.set(dateStr, { active: 0, overdue: 0 })
       }
@@ -156,7 +134,6 @@ export function useDashboardCharts() {
 
   return {
     salesData: salesData || [],
-    stockData: stockData || [],
     paymentData: paymentData || [],
     conditionalData: conditionalData || []
   }

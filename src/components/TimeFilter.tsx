@@ -7,11 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-
-type TimeFilterOption = 'today' | 'yesterday' | 'this-week' | 'this-month' | 'this-year' | 'custom'
+import { TimeFilterOption, DateRange } from '@/utils/dateFilters'
 
 interface TimeFilterProps {
-  onPeriodChange: (period: TimeFilterOption, customDates?: { from: Date; to: Date }) => void
+  onPeriodChange: (period: TimeFilterOption, customDates?: DateRange) => void
 }
 
 export function TimeFilter({ onPeriodChange }: TimeFilterProps) {

@@ -1,15 +1,26 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import { TimeFilterOption, DateRange, getDateRangeFromPeriod } from '@/utils/dateFilters'
 
-export function useDashboardData() {
+interface DashboardDataOptions {
+  period?: TimeFilterOption
+  customDates?: DateRange
+}
+
+export function useDashboardData(options: DashboardDataOptions = {}) {
+  const { period = 'today', customDates } = options
+  const dateRange = getDateRangeFromPeriod(period, customDates)
+
   // Buscar estatísticas de condicionais
   const { data: conditionalStats } = useQuery({
-    queryKey: ['conditional-stats'],
+    queryKey: ['conditional-stats', period, customDates],
     queryFn: async () => {
       const { data: conditionals, error } = await supabase
         .from('conditionals')
-        .select('total_value, status, due_date')
+        .select('total_value, status, due_date, created_at')
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
       
       if (error) throw error
 
@@ -24,17 +35,15 @@ export function useDashboardData() {
     }
   })
 
-  // Buscar estatísticas de pedidos do dia
+  // Buscar estatísticas de pedidos
   const { data: orderStats } = useQuery({
-    queryKey: ['order-stats-today'],
+    queryKey: ['order-stats', period, customDates],
     queryFn: async () => {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
       const { data: orders, error } = await supabase
         .from('orders')
         .select('total_amount, status, created_at')
-        .gte('created_at', today.toISOString())
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
       
       if (error) throw error
 
@@ -45,7 +54,7 @@ export function useDashboardData() {
     }
   })
 
-  // Buscar produtos com estoque baixo - corrigido para remover a chamada RPC inválida
+  // Buscar produtos com estoque baixo - esta consulta não precisa de filtro de data
   const { data: lowStockCount } = useQuery({
     queryKey: ['low-stock-count'],
     queryFn: async () => {
@@ -63,9 +72,9 @@ export function useDashboardData() {
     }
   })
 
-  // Buscar condicionais recentes
+  // Buscar condicionais recentes com filtro de data
   const { data: recentConditionals } = useQuery({
-    queryKey: ['recent-conditionals'],
+    queryKey: ['recent-conditionals', period, customDates],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('conditionals')
@@ -76,10 +85,13 @@ export function useDashboardData() {
           total_value,
           due_date,
           status,
+          created_at,
           conditional_items(quantity)
         `)
+        .gte('created_at', dateRange.from.toISOString())
+        .lte('created_at', dateRange.to.toISOString())
         .order('created_at', { ascending: false })
-        .limit(5)
+        .limit(10)
       
       if (error) throw error
 

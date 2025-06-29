@@ -1,3 +1,5 @@
+
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,6 +10,7 @@ import { useDashboardCharts } from '@/hooks/useDashboardCharts'
 import { SalesChart } from '@/components/Charts/SalesChart'
 import { PaymentMethodsChart } from '@/components/Charts/PaymentMethodsChart'
 import { ConditionalChart } from '@/components/Charts/ConditionalChart'
+import { TimeFilterOption, DateRange } from '@/utils/dateFilters'
 import { 
   ShoppingBag, 
   Package, 
@@ -21,19 +24,29 @@ import {
 } from 'lucide-react'
 
 export default function Dashboard() {
+  const [selectedPeriod, setSelectedPeriod] = useState<TimeFilterOption>('today')
+  const [customDates, setCustomDates] = useState<DateRange>()
+
   const { 
     conditionalStats, 
     orderStats, 
     lowStockCount, 
     recentConditionals,
     isLoading 
-  } = useDashboardData()
+  } = useDashboardData({ 
+    period: selectedPeriod, 
+    customDates 
+  })
 
-  const { salesData, paymentData, conditionalData } = useDashboardCharts()
+  const { salesData, paymentData, conditionalData } = useDashboardCharts({ 
+    period: selectedPeriod, 
+    customDates 
+  })
 
-  const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
+  const handlePeriodChange = (period: TimeFilterOption, customDates?: DateRange) => {
     console.log('Period changed to:', period, customDates)
-    // Aqui você implementaria a lógica para filtrar os dados baseado no período
+    setSelectedPeriod(period)
+    setCustomDates(customDates)
   }
 
   const exportConditionalsToCSV = () => {
