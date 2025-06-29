@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TimeFilter } from '@/components/TimeFilter'
+import { ProductViewDialog } from '@/components/ProductViewDialog'
+import { ProductEditDialog } from '@/components/ProductEditDialog'
 import { 
   Search, 
   Filter, 
@@ -40,6 +42,11 @@ export default function Stock() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedProductForView, setSelectedProductForView] = useState<Product | null>(null)
+  const [selectedProductForEdit, setSelectedProductForEdit] = useState<Product | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Mock products data
   const mockProducts: Product[] = [
@@ -171,6 +178,20 @@ export default function Stock() {
     return status === 'active' ? 
       <Badge variant="secondary">Ativo</Badge> : 
       <Badge variant="outline">Inativo</Badge>
+  }
+
+  const handleViewProduct = (product: Product) => {
+    setSelectedProductForView(product)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProductForEdit(product)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleProductUpdated = () => {
+    setRefreshKey(prev => prev + 1)
   }
 
   return (
@@ -347,10 +368,18 @@ export default function Stock() {
                   </div>
                   
                   <div className="flex space-x-2 ml-4">
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleViewProduct(product)}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleEditProduct(product)}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                   </div>
@@ -360,6 +389,20 @@ export default function Stock() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <ProductViewDialog
+        product={selectedProductForView}
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+      />
+
+      <ProductEditDialog
+        product={selectedProductForEdit}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onProductUpdated={handleProductUpdated}
+      />
     </div>
   )
 }
