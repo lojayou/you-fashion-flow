@@ -13,7 +13,7 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
   const dateRange = getDateRangeFromPeriod(period, customDates)
   const isHourlyData = shouldShowHourlyData(period)
 
-  // Dados de vendas com filtro de data - corrigido para mostrar apenas pedidos entregues
+  // Dados de vendas com filtro de data - apenas pedidos finalizados
   const { data: salesData } = useQuery({
     queryKey: ['sales-chart-data', period, customDates],
     queryFn: async () => {
@@ -22,7 +22,7 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
         .select('total_amount, created_at')
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .eq('status', 'delivered') // Apenas pedidos entregues
+        .in('status', ['delivered', 'completed']) // Pedidos finalizados
       
       if (error) throw error
 
@@ -52,34 +52,37 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
         // Para outros períodos, mostrar dados diários
         const dailySales = new Map<string, number>()
         
-        // Calcular quantos dias entre from e to
-        const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
-        const maxDays = Math.min(daysDiff, 30) // Limitar a 30 dias para performance
+        // Inicializar todos os dias do período selecionado
+        const currentDate = new Date(dateRange.from)
+        const endDate = new Date(dateRange.to)
         
-        // Inicializar dias no período
-        for (let i = 0; i < maxDays; i++) {
-          const date = new Date(dateRange.from)
-          date.setDate(date.getDate() + i)
-          const dateStr = date.toISOString().split('T')[0]
+        while (currentDate <= endDate) {
+          const dateStr = currentDate.toISOString().split('T')[0]
           dailySales.set(dateStr, 0)
+          currentDate.setDate(currentDate.getDate() + 1)
         }
         
         // Somar vendas por dia
         orders?.forEach(order => {
           const dateStr = new Date(order.created_at).toISOString().split('T')[0]
-          const currentValue = dailySales.get(dateStr) || 0
-          dailySales.set(dateStr, currentValue + parseFloat(order.total_amount.toString()))
+          if (dailySales.has(dateStr)) {
+            const currentValue = dailySales.get(dateStr) || 0
+            dailySales.set(dateStr, currentValue + parseFloat(order.total_amount.toString()))
+          }
         })
         
-        return Array.from(dailySales.entries()).map(([date, sales]) => ({
-          date,
-          sales: Math.round(sales * 100) / 100
-        }))
+        // Retornar dados ordenados cronologicamente
+        return Array.from(dailySales.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, sales]) => ({
+            date,
+            sales: Math.round(sales * 100) / 100
+          }))
       }
     }
   })
 
-  // Dados de métodos de pagamento com filtro de data
+  // Dados de métodos de pagamento - apenas pedidos finalizados
   const { data: paymentData } = useQuery({
     queryKey: ['payment-methods-chart-data', period, customDates],
     queryFn: async () => {
@@ -88,21 +91,25 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
         .select('payment_method, total_amount')
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .eq('status', 'delivered')
+        .in('status', ['delivered', 'completed']) // Pedidos finalizados
       
       if (error) throw error
 
-      const paymentMethods = new Map<string, number>()
+      const paymentMethods = new Map<string, { count: number, value: number }>()
       
       orders?.forEach(order => {
         const method = order.payment_method || 'Não informado'
-        const current = paymentMethods.get(method) || 0
-        paymentMethods.set(method, current + parseFloat(order.total_amount.toString()))
+        const current = paymentMethods.get(method) || { count: 0, value: 0 }
+        paymentMethods.set(method, {
+          count: current.count + 1,
+          value: current.value + parseFloat(order.total_amount.toString())
+        })
       })
       
-      return Array.from(paymentMethods.entries()).map(([method, value], index) => ({
+      return Array.from(paymentMethods.entries()).map(([method, data], index) => ({
         method,
-        value: Math.round(value * 100) / 100,
+        value: Math.round(data.value * 100) / 100,
+        count: data.count,
         fill: `hsl(var(--chart-${(index % 5) + 1}))`
       }))
     }
@@ -154,37 +161,39 @@ export function useDashboardCharts(options: DashboardChartsOptions = {}) {
         // Para outros períodos, mostrar dados diários
         const dailyConditionals = new Map<string, { active: number, overdue: number }>()
         
-        // Calcular quantos dias entre from e to
-        const daysDiff = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24))
-        const maxDays = Math.min(daysDiff, 30) // Limitar a 30 dias para performance
+        // Inicializar todos os dias do período
+        const currentDate = new Date(dateRange.from)
+        const endDate = new Date(dateRange.to)
         
-        // Inicializar dias no período
-        for (let i = 0; i < maxDays; i++) {
-          const date = new Date(dateRange.from)
-          date.setDate(date.getDate() + i)
-          const dateStr = date.toISOString().split('T')[0]
+        while (currentDate <= endDate) {
+          const dateStr = currentDate.toISOString().split('T')[0]
           dailyConditionals.set(dateStr, { active: 0, overdue: 0 })
+          currentDate.setDate(currentDate.getDate() + 1)
         }
         
         conditionals?.forEach(conditional => {
           const dateStr = new Date(conditional.created_at).toISOString().split('T')[0]
-          const current = dailyConditionals.get(dateStr) || { active: 0, overdue: 0 }
-          
-          if (conditional.status === 'overdue' || 
-              (conditional.status === 'active' && new Date(conditional.due_date) < new Date())) {
-            current.overdue += 1
-          } else {
-            current.active += 1
+          if (dailyConditionals.has(dateStr)) {
+            const current = dailyConditionals.get(dateStr) || { active: 0, overdue: 0 }
+            
+            if (conditional.status === 'overdue' || 
+                (conditional.status === 'active' && new Date(conditional.due_date) < new Date())) {
+              current.overdue += 1
+            } else {
+              current.active += 1
+            }
+            
+            dailyConditionals.set(dateStr, current)
           }
-          
-          dailyConditionals.set(dateStr, current)
         })
         
-        return Array.from(dailyConditionals.entries()).map(([date, data]) => ({
-          date,
-          active: data.active,
-          overdue: data.overdue
-        }))
+        return Array.from(dailyConditionals.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, data]) => ({
+            date,
+            active: data.active,
+            overdue: data.overdue
+          }))
       }
     }
   })

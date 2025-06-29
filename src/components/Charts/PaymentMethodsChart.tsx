@@ -14,11 +14,30 @@ interface PaymentMethodsChartProps {
   data: Array<{
     method: string
     value: number
+    count: number
     fill: string
   }>
 }
 
 export function PaymentMethodsChart({ data }: PaymentMethodsChartProps) {
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload
+      return (
+        <div className="bg-background border rounded-lg p-3 shadow-md">
+          <p className="font-medium">{data.method}</p>
+          <p className="text-sm text-muted-foreground">
+            Quantidade: {data.count} pedidos
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Valor: R$ {data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -31,30 +50,36 @@ export function PaymentMethodsChart({ data }: PaymentMethodsChartProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="method"
-              innerRadius={60}
-              strokeWidth={2}
-              stroke="hsl(var(--background))"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Pie>
-            <ChartLegend
-              content={<ChartLegendContent nameKey="method" />}
-              className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
-            />
-          </PieChart>
-        </ChartContainer>
+        {data.length === 0 ? (
+          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            Nenhum dado encontrado para o período selecionado
+          </div>
+        ) : (
+          <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
+            <PieChart>
+              <ChartTooltip
+                cursor={false}
+                content={<CustomTooltip />}
+              />
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="method"
+                innerRadius={60}
+                strokeWidth={2}
+                stroke="hsl(var(--background))"
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <ChartLegend
+                content={<ChartLegendContent nameKey="method" />}
+                className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+              />
+            </PieChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )
