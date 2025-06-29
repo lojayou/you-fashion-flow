@@ -1,4 +1,5 @@
-import { useState } from 'react'
+
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,6 +32,25 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect, onCustomerC
   const [searchResults, setSearchResults] = useState<Customer[]>([])
   const [isAddingCustomer, setIsAddingCustomer] = useState(false)
 
+  // Debounce para busca automática
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm.trim() && searchTerm.length >= 2) {
+        console.log('Iniciando busca automática para:', searchTerm)
+        handleSearch()
+      } else if (searchTerm.length === 0) {
+        setSearchResults([])
+      }
+    }, 500) // 500ms de delay
+
+    console.log('Configurando timeout para busca automática')
+    
+    return () => {
+      console.log('Limpando timeout do debounce')
+      clearTimeout(timeoutId)
+    }
+  }, [searchTerm])
+
   const handleSearch = async () => {
     if (!searchTerm.trim()) return
 
@@ -59,9 +79,10 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect, onCustomerC
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch()
+  const handleInputChange = (value: string) => {
+    setSearchTerm(value)
+    if (value.length === 0) {
+      setSearchResults([])
     }
   }
 
@@ -126,19 +147,16 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect, onCustomerC
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Input
-                  placeholder="Buscar por nome, telefone ou email..."
+                  placeholder="Digite para buscar por nome, telefone ou email..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onChange={(e) => handleInputChange(e.target.value)}
                 />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin h-4 w-4 border-2 border-copper-500 border-t-transparent rounded-full"></div>
+                  </div>
+                )}
               </div>
-              <Button
-                onClick={handleSearch}
-                disabled={isSearching || !searchTerm.trim()}
-                variant="outline"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
               
               <Dialog open={isAddingCustomer} onOpenChange={setIsAddingCustomer}>
                 <DialogTrigger asChild>
@@ -182,11 +200,11 @@ export function CustomerSearch({ selectedCustomer, onCustomerSelect, onCustomerC
               </div>
             )}
 
-            {isSearching && (
-              <p className="text-sm text-muted-foreground">Buscando clientes...</p>
+            {searchTerm.length > 0 && searchTerm.length < 2 && (
+              <p className="text-sm text-muted-foreground">Digite pelo menos 2 caracteres para buscar</p>
             )}
 
-            {searchTerm && searchResults.length === 0 && !isSearching && (
+            {searchTerm.length >= 2 && searchResults.length === 0 && !isSearching && (
               <p className="text-sm text-muted-foreground">Nenhum cliente encontrado</p>
             )}
           </>
