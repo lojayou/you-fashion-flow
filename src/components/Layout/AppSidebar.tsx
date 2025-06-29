@@ -47,6 +47,12 @@ export function AppSidebar() {
       permission: 'stock' as const,
     },
     {
+      title: 'Clientes',
+      url: '/customers',
+      icon: Users,
+      permission: 'users' as const,
+    },
+    {
       title: 'Usuários',
       url: '/users',
       icon: Users,

@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { CustomerSearch } from '@/components/CustomerSearch'
 
 interface CartItem {
   id: string
@@ -39,10 +40,21 @@ interface PaymentMethod {
   amount: number
 }
 
+interface Customer {
+  id: string
+  name: string
+  email?: string
+  phone: string
+  cpf?: string
+  address?: string
+  city?: string
+  state?: string
+  zip_code?: string
+}
+
 export default function PDV() {
   const [cart, setCart] = useState<CartItem[]>([])
-  const [customerName, setCustomerName] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isConditional, setIsConditional] = useState(false)
   const [conditionalDate, setConditionalDate] = useState<Date>()
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -50,6 +62,7 @@ export default function PDV() {
   const [discount, setDiscount] = useState(0)
   const [amountPaid, setAmountPaid] = useState(0)
   const [observations, setObservations] = useState('')
+  const [customPaymentType, setCustomPaymentType] = useState('')
   const { toast } = useToast()
 
   // Mock products for demo
@@ -92,19 +105,29 @@ export default function PDV() {
   }
 
   const addPaymentMethod = () => {
-    if (paymentMethod && amountPaid > 0) {
+    if (customPaymentType && amountPaid > 0) {
       const newPayment: PaymentMethod = {
-        type: paymentMethod,
+        type: customPaymentType,
         amount: amountPaid
       }
       setPaymentMethods([...paymentMethods, newPayment])
-      setPaymentMethod('')
+      setCustomPaymentType('')
       setAmountPaid(0)
     }
   }
 
   const removePaymentMethod = (index: number) => {
     setPaymentMethods(paymentMethods.filter((_, i) => i !== index))
+  }
+
+  const getPaymentMethodLabel = (type: string) => {
+    const labels: { [key: string]: string } = {
+      'money': 'Dinheiro',
+      'credit': 'Cartão de Crédito',
+      'debit': 'Cartão de Débito',
+      'pix': 'PIX'
+    }
+    return labels[type] || type
   }
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
@@ -156,13 +179,12 @@ export default function PDV() {
 
     toast({
       title: `${isConditional ? 'Condicional' : 'Venda'} realizada com sucesso!`,
-      description: `Pedido #${orderNumber} registrado`,
+      description: `Pedido #${orderNumber} registrado${selectedCustomer ? ` para ${selectedCustomer.name}` : ''}`,
     })
 
     // Reset form
     setCart([])
-    setCustomerName('')
-    setCustomerPhone('')
+    setSelectedCustomer(null)
     setIsConditional(false)
     setConditionalDate(undefined)
     setPaymentMethod('')
@@ -170,6 +192,7 @@ export default function PDV() {
     setDiscount(0)
     setAmountPaid(0)
     setObservations('')
+    setCustomPaymentType('')
   }
 
   return (
@@ -283,26 +306,10 @@ export default function PDV() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="customerName">Nome</Label>
-                <Input
-                  id="customerName"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Nome do cliente (opcional)"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customerPhone">Telefone</Label>
-                <Input
-                  id="customerPhone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-            </div>
+            <CustomerSearch 
+              selectedCustomer={selectedCustomer}
+              onCustomerSelect={setSelectedCustomer}
+            />
             
             <div className="space-y-2">
               <Label htmlFor="observations">Observações</Label>
@@ -392,7 +399,7 @@ export default function PDV() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Tipo</Label>
-                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                        <Select value={customPaymentType} onValueChange={setCustomPaymentType}>
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
@@ -417,7 +424,7 @@ export default function PDV() {
                           <Button
                             size="sm"
                             onClick={addPaymentMethod}
-                            disabled={!paymentMethod || amountPaid <= 0}
+                            disabled={!customPaymentType || amountPaid <= 0}
                             className="bg-copper-500 hover:bg-copper-600"
                           >
                             <Plus className="h-4 w-4" />
@@ -433,11 +440,7 @@ export default function PDV() {
                           {paymentMethods.map((pm, index) => (
                             <div key={index} className="flex items-center justify-between p-2 border rounded">
                               <span className="text-sm">
-                                {pm.type === 'money' && 'Dinheiro'}
-                                {pm.type === 'credit' && 'Cartão de Crédito'}
-                                {pm.type === 'debit' && 'Cartão de Débito'}
-                                {pm.type === 'pix' && 'PIX'}
-                                : R$ {pm.amount.toFixed(2)}
+                                {getPaymentMethodLabel(pm.type)}: R$ {pm.amount.toFixed(2)}
                               </span>
                               <Button
                                 size="sm"
