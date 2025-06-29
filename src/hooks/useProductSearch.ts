@@ -46,18 +46,18 @@ export function useProductSearch() {
         .order('name')
 
       if (term.trim()) {
-        query = query.or(`
-          name.ilike.%${term}%,
-          sku.ilike.%${term}%,
-          brands.name.ilike.%${term}%
-        `)
+        // Busca mais flexível usando ilike para busca parcial case-insensitive
+        query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
       }
 
       const { data, error } = await query.limit(20)
 
       if (error) {
+        console.error('Erro na consulta:', error)
         throw error
       }
+
+      console.log('Dados retornados da consulta:', data)
 
       const formattedProducts = data?.map(product => ({
         id: product.id,
@@ -67,10 +67,11 @@ export function useProductSearch() {
         stock: product.stock || 0,
         min_stock: product.min_stock || 0,
         status: product.status,
-        brand: product.brands || undefined,
-        category: product.categories || undefined
+        brand: product.brands ? { name: product.brands.name } : undefined,
+        category: product.categories ? { name: product.categories.name } : undefined
       })) || []
 
+      console.log('Produtos formatados:', formattedProducts)
       setProducts(formattedProducts)
     } catch (err) {
       console.error('Error searching products:', err)
