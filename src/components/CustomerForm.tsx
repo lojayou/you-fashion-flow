@@ -41,10 +41,32 @@ export function CustomerForm({ customer, onSuccess }: CustomerFormProps) {
 
   const saveCustomerMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Remove empty fields to avoid issues
-      const cleanData = Object.fromEntries(
-        Object.entries(data).filter(([_, value]) => value && value.trim() !== '' && value.trim() !== '+55')
-      )
+      // Remove empty fields to avoid issues, but preserve required fields
+      const cleanData: any = {}
+      
+      // Always include required fields
+      cleanData.name = data.name
+      cleanData.phone = data.phone
+      
+      // Only include optional fields if they have values
+      if (data.email && data.email.trim() !== '') {
+        cleanData.email = data.email
+      }
+      if (data.cpf && data.cpf.trim() !== '') {
+        cleanData.cpf = data.cpf
+      }
+      if (data.address && data.address.trim() !== '') {
+        cleanData.address = data.address
+      }
+      if (data.city && data.city.trim() !== '') {
+        cleanData.city = data.city
+      }
+      if (data.state && data.state.trim() !== '') {
+        cleanData.state = data.state
+      }
+      if (data.zip_code && data.zip_code.trim() !== '') {
+        cleanData.zip_code = data.zip_code
+      }
 
       console.log('Salvando cliente:', cleanData)
 
