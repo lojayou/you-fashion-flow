@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { supabase } from '@/integrations/supabase/client'
 import { Package, Calendar, DollarSign } from 'lucide-react'
+import { OrderViewDialog } from './OrderViewDialog'
 
 interface Order {
   id: string
@@ -23,6 +24,8 @@ interface CustomerOrderHistoryProps {
 export function CustomerOrderHistory({ customerId, customerName }: CustomerOrderHistoryProps) {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false)
 
   useEffect(() => {
     fetchCustomerOrders()
@@ -58,6 +61,11 @@ export function CustomerOrderHistory({ customerId, customerName }: CustomerOrder
     
     const config = statusConfig[status as keyof typeof statusConfig] || { label: status, variant: 'outline' as const }
     return <Badge variant={config.variant}>{config.label}</Badge>
+  }
+
+  const handleOrderClick = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    setIsOrderDialogOpen(true)
   }
 
   const totalSpent = orders.reduce((sum, order) => sum + Number(order.total_amount), 0)
@@ -101,7 +109,11 @@ export function CustomerOrderHistory({ customerId, customerName }: CustomerOrder
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow 
+                    key={order.id}
+                    className="cursor-pointer hover:bg-copper-50/20 transition-colors"
+                    onClick={() => handleOrderClick(order.id)}
+                  >
                     <TableCell>
                       <div className="font-medium">#{order.order_number}</div>
                     </TableCell>
@@ -137,6 +149,13 @@ export function CustomerOrderHistory({ customerId, customerName }: CustomerOrder
           </CardContent>
         </Card>
       )}
+
+      <OrderViewDialog
+        orderId={selectedOrderId}
+        orderType="sale"
+        open={isOrderDialogOpen}
+        onOpenChange={setIsOrderDialogOpen}
+      />
     </div>
   )
 }
