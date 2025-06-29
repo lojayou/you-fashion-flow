@@ -29,7 +29,9 @@ export function useProductSearch() {
     setError(null)
 
     try {
-      console.log('Iniciando busca de produtos por SKU:', term)
+      console.log('=== INICIANDO BUSCA POR SKU ===')
+      console.log('Termo de busca:', term)
+      console.log('Termo após trim:', term.trim())
       
       let query = supabase
         .from('products')
@@ -40,73 +42,96 @@ export function useProductSearch() {
           sale_price,
           stock,
           min_stock,
-          status,
-          brand_id,
-          category_id
+          status
         `)
         .eq('status', 'active')
 
       if (term.trim()) {
-        // Busca exclusiva por SKU
+        console.log('Aplicando filtro por SKU com termo:', term)
         query = query.ilike('sku', `%${term}%`)
-        console.log('Filtro aplicado - buscando por SKU:', term)
       } else {
-        console.log('Carregando todos os produtos ativos')
+        console.log('Carregando todos os produtos ativos (sem filtro)')
       }
 
+      console.log('Executando query...')
       const { data, error } = await query
         .order('name')
         .limit(50)
+
+      console.log('Resposta da query:', { data, error })
 
       if (error) {
         console.error('Erro na consulta Supabase:', error)
         throw error
       }
 
-      console.log('Resultado da consulta:', {
+      console.log('Dados retornados:', {
         total: data?.length || 0,
-        dados: data
+        produtos: data?.map(p => ({ sku: p.sku, name: p.name }))
       })
 
-      if (!data || data.length === 0) {
-        console.log('Nenhum produto encontrado')
+      if (!data) {
+        console.log('Nenhum dado retornado (data é null/undefined)')
         setProducts([])
         return
       }
 
-      const formattedProducts = data.map(product => ({
-        id: product.id,
-        name: product.name,
-        sku: product.sku,
-        sale_price: Number(product.sale_price) || 0,
-        stock: Number(product.stock) || 0,
-        min_stock: Number(product.min_stock) || 0,
-        status: product.status as 'active' | 'inactive',
-        brand: undefined,
-        category: undefined
-      }))
+      if (data.length === 0) {
+        console.log('Array de dados está vazio')
+        setProducts([])
+        return
+      }
+
+      // Formatação dos produtos com validação
+      const formattedProducts = data.map(product => {
+        console.log('Formatando produto:', product)
+        return {
+          id: product.id,
+          name: product.name || 'Nome não informado',
+          sku: product.sku || 'SKU não informado',
+          sale_price: Number(product.sale_price) || 0,
+          stock: Number(product.stock) || 0,
+          min_stock: Number(product.min_stock) || 0,
+          status: product.status as 'active' | 'inactive',
+          brand: undefined,
+          category: undefined
+        }
+      })
 
       console.log('Produtos formatados:', formattedProducts)
+      console.log('=== BUSCA CONCLUÍDA COM SUCESSO ===')
+      
       setProducts(formattedProducts)
     } catch (err: any) {
-      console.error('Erro completo na busca:', err)
+      console.error('=== ERRO NA BUSCA ===')
+      console.error('Erro completo:', err)
+      console.error('Mensagem do erro:', err.message)
+      console.error('Stack trace:', err.stack)
+      
       setError(`Erro ao buscar produtos: ${err.message || 'Erro desconhecido'}`)
       setProducts([])
     } finally {
       setIsLoading(false)
+      console.log('=== FINALIZANDO BUSCA ===')
     }
   }
 
   useEffect(() => {
+    console.log('useEffect disparado com searchTerm:', searchTerm)
     const timeoutId = setTimeout(() => {
+      console.log('Executando busca após debounce de 300ms')
       searchProducts(searchTerm)
-    }, 300) // Debounce de 300ms
+    }, 300)
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      console.log('Limpando timeout do debounce')
+      clearTimeout(timeoutId)
+    }
   }, [searchTerm])
 
   // Carregar produtos iniciais
   useEffect(() => {
+    console.log('Carregando produtos iniciais')
     searchProducts('')
   }, [])
 
