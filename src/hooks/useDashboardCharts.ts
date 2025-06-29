@@ -14,7 +14,7 @@ export function useDashboardCharts() {
         .from('orders')
         .select('total_amount, created_at')
         .gte('created_at', sevenDaysAgo.toISOString())
-        .eq('status', 'completed')
+        .eq('status', 'delivered')
       
       if (error) throw error
 
@@ -87,7 +87,7 @@ export function useDashboardCharts() {
       const { data: orders, error } = await supabase
         .from('orders')
         .select('payment_method, total_amount')
-        .eq('status', 'completed')
+        .eq('status', 'delivered')
       
       if (error) throw error
 
