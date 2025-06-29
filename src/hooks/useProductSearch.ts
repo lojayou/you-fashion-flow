@@ -29,7 +29,7 @@ export function useProductSearch() {
     setError(null)
 
     try {
-      console.log('Iniciando busca de produtos com termo:', term)
+      console.log('Iniciando busca de produtos por SKU:', term)
       
       let query = supabase
         .from('products')
@@ -47,9 +47,9 @@ export function useProductSearch() {
         .eq('status', 'active')
 
       if (term.trim()) {
-        // Usando a sintaxe correta do Supabase para busca OR
-        query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%`)
-        console.log('Filtro aplicado - buscando por:', term)
+        // Busca exclusiva por SKU
+        query = query.ilike('sku', `%${term}%`)
+        console.log('Filtro aplicado - buscando por SKU:', term)
       } else {
         console.log('Carregando todos os produtos ativos')
       }

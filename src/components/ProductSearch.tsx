@@ -45,7 +45,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
-          placeholder="Buscar por nome, SKU ou marca..."
+          placeholder="Buscar por SKU..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -73,7 +73,7 @@ export function ProductSearch({ onProductSelect }: ProductSearchProps) {
             <div className="text-center py-8">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
               <p className="text-muted-foreground">
-                {searchTerm ? 'Nenhum produto encontrado' : 'Nenhum produto disponível'}
+                {searchTerm ? 'Nenhum produto encontrado com este SKU' : 'Nenhum produto disponível'}
               </p>
             </div>
           ) : (
