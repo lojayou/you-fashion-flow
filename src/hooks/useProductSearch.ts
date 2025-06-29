@@ -31,7 +31,6 @@ export function useProductSearch() {
     try {
       console.log('=== INICIANDO BUSCA POR SKU ===')
       console.log('Termo de busca:', term)
-      console.log('URL Supabase:', supabase.supabaseUrl)
       
       let query = supabase
         .from('products')
