@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,7 @@ import {
   Plus, 
   Edit,
   Trash2,
-  FileExport,
+  FileText,
   Phone,
   Mail
 } from 'lucide-react'

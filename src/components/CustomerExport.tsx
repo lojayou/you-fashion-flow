@@ -1,6 +1,6 @@
 
 import { Button } from '@/components/ui/button'
-import { FileExport } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Customer {
@@ -87,7 +87,7 @@ export function CustomerExport({ customers }: CustomerExportProps) {
       onClick={exportCustomers}
       className="flex items-center gap-2"
     >
-      <FileExport className="h-4 w-4" />
+      <FileText className="h-4 w-4" />
       Exportar Lista
     </Button>
   )
