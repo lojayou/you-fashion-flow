@@ -45,29 +45,21 @@ export function useDashboardData() {
     }
   })
 
-  // Buscar produtos com estoque baixo
+  // Buscar produtos com estoque baixo - corrigido para remover a chamada RPC inválida
   const { data: lowStockCount } = useQuery({
     queryKey: ['low-stock-count'],
     queryFn: async () => {
       const { data: products, error } = await supabase
         .from('products')
         .select('stock, min_stock')
-        .lte('stock', supabase.rpc('min_stock'))
       
-      if (error) {
-        // Fallback query se RPC não funcionar
-        const { data: allProducts } = await supabase
-          .from('products')
-          .select('stock, min_stock')
-        
-        const lowStock = allProducts?.filter(p => 
-          (p.stock || 0) <= (p.min_stock || 5)
-        ).length || 0
-        
-        return lowStock
-      }
+      if (error) throw error
 
-      return products?.length || 0
+      const lowStock = products?.filter(p => 
+        (p.stock || 0) <= (p.min_stock || 5)
+      ).length || 0
+      
+      return lowStock
     }
   })
 
