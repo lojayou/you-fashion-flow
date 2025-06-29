@@ -29,9 +29,6 @@ export function useProductSearch() {
     setError(null)
 
     try {
-      console.log('=== INICIANDO BUSCA POR SKU ===')
-      console.log('Termo de busca:', term)
-      
       let query = supabase
         .from('products')
         .select(`
@@ -44,44 +41,28 @@ export function useProductSearch() {
           status
         `)
 
-      // Se há termo de busca, aplicar filtro por SKU
+      // Se há termo de busca, aplicar filtro por nome OU SKU
       if (term.trim()) {
-        console.log('Aplicando filtro SKU:', term.trim())
-        query = query.ilike('sku', `%${term.trim()}%`)
+        query = query.or(`name.ilike.%${term.trim()}%,sku.ilike.%${term.trim()}%`)
       }
 
       // Sempre buscar apenas produtos ativos
       query = query.eq('status', 'active')
 
-      console.log('Executando query Supabase...')
-      const { data, error, status, statusText } = await query
+      const { data, error } = await query
         .order('name')
         .limit(50)
 
-      console.log('Resposta completa:', { data, error, status, statusText })
-
       if (error) {
-        console.error('ERRO SUPABASE:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
         throw new Error(`Erro na consulta: ${error.message}`)
       }
 
       if (!data) {
-        console.log('Dados nulos retornados')
         setProducts([])
         return
       }
 
-      console.log(`${data.length} produto(s) encontrado(s):`)
-      data.forEach(product => {
-        console.log(`- SKU: ${product.sku}, Nome: ${product.name}, Status: ${product.status}`)
-      })
-
-      // Formatação simples dos produtos
+      // Formatação dos produtos
       const formattedProducts = data.map(product => ({
         id: product.id,
         name: product.name || 'Nome não informado',
@@ -92,50 +73,30 @@ export function useProductSearch() {
         status: product.status as 'active' | 'inactive'
       }))
 
-      console.log('Produtos formatados para estado:', formattedProducts)
       setProducts(formattedProducts)
-      console.log('=== BUSCA CONCLUÍDA COM SUCESSO ===')
       
     } catch (err: any) {
-      console.error('=== ERRO NA BUSCA ===')
-      console.error('Erro completo:', err)
-      console.error('Tipo do erro:', typeof err)
-      console.error('Stack trace:', err.stack)
-      
       const errorMessage = err.message || err.toString() || 'Erro desconhecido na busca'
       setError(errorMessage)
       setProducts([])
-      
-      // Log adicional para debug
-      console.error('Estado após erro:', {
-        error: errorMessage,
-        productsLength: 0,
-        isLoading: false
-      })
     } finally {
       setIsLoading(false)
-      console.log('=== FINALIZANDO BUSCA ===')
     }
   }
 
   // Debounce para busca automática
   useEffect(() => {
-    console.log('useEffect disparado - searchTerm:', searchTerm)
-    
     const timeoutId = setTimeout(() => {
-      console.log('Executando busca após debounce')
       searchProducts(searchTerm)
     }, 300)
 
     return () => {
-      console.log('Limpando timeout do debounce')
       clearTimeout(timeoutId)
     }
   }, [searchTerm])
 
   // Carregar produtos iniciais ao montar o componente
   useEffect(() => {
-    console.log('Hook montado - carregando produtos iniciais')
     searchProducts('')
   }, [])
 
@@ -145,7 +106,6 @@ export function useProductSearch() {
     setSearchTerm,
     isLoading,
     error,
-    // Função auxiliar para busca manual
     manualSearch: searchProducts
   }
 }
