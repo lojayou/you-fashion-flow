@@ -18,37 +18,73 @@ export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
     queryFn: async (): Promise<Product[]> => {
-      console.log('Buscando produtos do banco de dados...')
+      console.log('🔍 Iniciando busca de produtos...')
       
-      // Primeiro, vamos buscar todos os produtos para debug
-      const { data: allProducts, error: allError } = await supabase
-        .from('products')
-        .select('id, name, sku, sale_price, stock, colors, sizes, description, status')
+      try {
+        // Primeiro, vamos buscar todos os produtos para debug
+        const { data: allProducts, error: allError } = await supabase
+          .from('products')
+          .select('id, name, sku, sale_price, stock, colors, sizes, description, status')
 
-      if (allError) {
-        console.error('Erro ao buscar todos os produtos:', allError)
-      } else {
-        console.log('Todos os produtos no banco:', allProducts)
-        console.log('Total de produtos:', allProducts?.length || 0)
-      }
+        console.log('📊 Query executada - Todos os produtos')
+        
+        if (allError) {
+          console.error('❌ Erro ao buscar todos os produtos:', allError)
+          throw allError
+        }
 
-      // Agora buscar apenas os produtos ativos
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name, sku, sale_price, stock, colors, sizes, description, status')
-        .eq('status', 'active')
-        .order('name')
+        console.log('✅ Todos os produtos no banco:', allProducts)
+        console.log('📈 Total de produtos no banco:', allProducts?.length || 0)
+        
+        if (allProducts && allProducts.length > 0) {
+          console.log('📋 Detalhes dos produtos:')
+          allProducts.forEach((product, index) => {
+            console.log(`  ${index + 1}. ${product.name} - Status: ${product.status} - Estoque: ${product.stock}`)
+          })
+        }
 
-      if (error) {
-        console.error('Erro ao buscar produtos ativos:', error)
+        // Agora buscar apenas os produtos ativos
+        const { data: activeProducts, error: activeError } = await supabase
+          .from('products')
+          .select('id, name, sku, sale_price, stock, colors, sizes, description, status')
+          .eq('status', 'active')
+          .order('name')
+
+        console.log('📊 Query executada - Produtos ativos')
+
+        if (activeError) {
+          console.error('❌ Erro ao buscar produtos ativos:', activeError)
+          throw activeError
+        }
+
+        console.log('✅ Produtos ativos encontrados:', activeProducts)
+        console.log('📈 Total de produtos ativos:', activeProducts?.length || 0)
+        console.log('📦 Produtos com estoque > 0:', activeProducts?.filter(p => p.stock > 0)?.length || 0)
+        
+        if (activeProducts && activeProducts.length > 0) {
+          console.log('📋 Produtos ativos detalhados:')
+          activeProducts.forEach((product, index) => {
+            console.log(`  ${index + 1}. ${product.name} - Estoque: ${product.stock} - Preço: R$ ${product.sale_price}`)
+            if (product.colors && product.colors.length > 0) {
+              console.log(`    Cores: ${product.colors.join(', ')}`)
+            }
+            if (product.sizes && product.sizes.length > 0) {
+              console.log(`    Tamanhos: ${product.sizes.join(', ')}`)
+            }
+          })
+        }
+        
+        console.log('🎯 Retornando produtos para o componente:', activeProducts?.length || 0, 'produtos')
+        
+        return activeProducts || []
+        
+      } catch (error) {
+        console.error('💥 Erro geral na busca de produtos:', error)
         throw error
       }
-
-      console.log('Produtos ativos encontrados:', data)
-      console.log('Produtos com estoque > 0:', data?.filter(p => p.stock > 0))
-      
-      // Retornar todos os produtos ativos, independente do estoque para debug
-      return data || []
     },
+    // Forçar refetch e evitar cache antigo
+    staleTime: 0,
+    gcTime: 0,
   })
 }

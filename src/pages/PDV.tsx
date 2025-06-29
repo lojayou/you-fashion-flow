@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,11 +73,34 @@ export default function PDV() {
   // Use real products from database
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useProducts()
 
-  const addToCart = (productId: string, color: string, size: string) => {
-    const product = products.find(p => p.id === productId)
-    if (!product) return
+  // Debug effect to monitor products data
+  useEffect(() => {
+    console.log('🔄 PDV Component - Products data changed:')
+    console.log('📊 Products:', products)
+    console.log('📈 Products count:', products?.length || 0)
+    console.log('⏳ Loading:', isLoadingProducts)
+    console.log('❌ Error:', productsError)
+    
+    if (products && products.length > 0) {
+      console.log('📋 Products in PDV component:')
+      products.forEach((product, index) => {
+        console.log(`  ${index + 1}. ${product.name} - ID: ${product.id}`)
+      })
+    } else if (!isLoadingProducts && !productsError) {
+      console.log('⚠️ No products found in PDV component')
+    }
+  }, [products, isLoadingProducts, productsError])
 
-    console.log('Adicionando ao carrinho:', { productId, color, size, product })
+  const addToCart = (productId: string, color: string, size: string) => {
+    console.log('🛒 Tentativa de adicionar ao carrinho:', { productId, color, size })
+    
+    const product = products.find(p => p.id === productId)
+    if (!product) {
+      console.error('❌ Produto não encontrado para adicionar ao carrinho:', productId)
+      return
+    }
+
+    console.log('✅ Produto encontrado para adicionar ao carrinho:', product)
 
     const newItem: CartItem = {
       id: Date.now().toString(),
@@ -318,6 +341,13 @@ export default function PDV() {
             <CardDescription>Selecione produtos para adicionar</CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-3 bg-muted/20 rounded-lg">
+              <p className="text-sm font-medium">Debug Info:</p>
+              <p className="text-xs">Loading: {isLoadingProducts ? 'Sim' : 'Não'}</p>
+              <p className="text-xs">Products: {products?.length || 0}</p>
+              <p className="text-xs">Error: {productsError ? 'Sim' : 'Não'}</p>
+            </div>
+            
             {isLoadingProducts ? (
               <div className="flex items-center justify-center h-96">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -328,52 +358,71 @@ export default function PDV() {
                 <div>
                   <p>Erro ao carregar produtos</p>
                   <p className="text-sm">{productsError.message}</p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-2"
+                    size="sm"
+                  >
+                    Recarregar
+                  </Button>
                 </div>
               </div>
             ) : products.length === 0 ? (
               <div className="text-center text-muted-foreground h-96 flex items-center justify-center">
-                <p>Nenhum produto ativo com estoque disponível</p>
+                <div>
+                  <p>Nenhum produto ativo encontrado</p>
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    className="mt-2"
+                    size="sm"
+                  >
+                    Recarregar
+                  </Button>
+                </div>
               </div>
             ) : (
               <ScrollArea className="h-96">
                 <div className="space-y-3 pr-4">
-                  {products.map((product) => (
-                    <div 
-                      key={product.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          SKU: {product.sku} • R$ {product.sale_price.toFixed(2)} • Estoque: {product.stock}
-                        </p>
-                        {product.description && (
-                          <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
-                        )}
-                        {(product.colors?.length > 0 || product.sizes?.length > 0) && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {product.colors?.length > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                {product.colors.length} cor{product.colors.length > 1 ? 'es' : ''}
-                              </Badge>
-                            )}
-                            {product.sizes?.length > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                {product.sizes.length} tamanho{product.sizes.length > 1 ? 's' : ''}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
+                  {products.map((product) => {
+                    console.log('🎨 Renderizando produto:', product.name, 'ID:', product.id)
+                    return (
+                      <div 
+                        key={product.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            SKU: {product.sku} • R$ {product.sale_price.toFixed(2)} • Estoque: {product.stock}
+                          </p>
+                          {product.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
+                          )}
+                          {(product.colors?.length > 0 || product.sizes?.length > 0) && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {product.colors?.length > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {product.colors.length} cor{product.colors.length > 1 ? 'es' : ''}
+                                </Badge>
+                              )}
+                              {product.sizes?.length > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {product.sizes.length} tamanho{product.sizes.length > 1 ? 's' : ''}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <ProductVariationSelector
+                            product={product}
+                            onAddToCart={addToCart}
+                            disabled={product.stock === 0}
+                          />
+                        </div>
                       </div>
-                      <div className="ml-4">
-                        <ProductVariationSelector
-                          product={product}
-                          onAddToCart={addToCart}
-                          disabled={product.stock === 0}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </ScrollArea>
             )}

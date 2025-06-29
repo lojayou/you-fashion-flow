@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
@@ -21,11 +21,28 @@ export const ProductVariationSelector = ({
   const [selectedSize, setSelectedSize] = useState('')
   const [showSelectors, setShowSelectors] = useState(false)
 
+  // Debug effect
+  useEffect(() => {
+    console.log('🎯 ProductVariationSelector rendered for:', product.name)
+    console.log('  Product ID:', product.id)
+    console.log('  Colors:', product.colors)
+    console.log('  Sizes:', product.sizes)
+    console.log('  Stock:', product.stock)
+    console.log('  Disabled:', disabled)
+  }, [product, disabled])
+
   const handleAddToCart = () => {
+    console.log('🛒 ProductVariationSelector - handleAddToCart called')
+    console.log('  Product:', product.name)
+    console.log('  Selected color:', selectedColor)
+    console.log('  Selected size:', selectedSize)
+    
     if (!selectedColor || !selectedSize) {
+      console.log('❌ Missing selections - Color:', selectedColor, 'Size:', selectedSize)
       return
     }
     
+    console.log('✅ Calling onAddToCart with:', product.id, selectedColor, selectedSize)
     onAddToCart(product.id, selectedColor, selectedSize)
     
     // Reset selections and hide selectors
@@ -37,11 +54,21 @@ export const ProductVariationSelector = ({
   const hasVariations = product.colors?.length > 0 || product.sizes?.length > 0
   const canAddToCart = !hasVariations || (selectedColor && selectedSize)
 
+  console.log('🔍 ProductVariationSelector state:', {
+    hasVariations,
+    canAddToCart,
+    showSelectors,
+    productName: product.name
+  })
+
   if (!showSelectors && hasVariations) {
     return (
       <Button
         size="sm"
-        onClick={() => setShowSelectors(true)}
+        onClick={() => {
+          console.log('👆 Opening selectors for:', product.name)
+          setShowSelectors(true)
+        }}
         disabled={disabled || product.stock === 0}
         className="bg-copper-500 hover:bg-copper-600"
       >
@@ -56,7 +83,10 @@ export const ProductVariationSelector = ({
         {product.colors && product.colors.length > 0 && (
           <div className="space-y-2">
             <Label className="text-xs">Cor</Label>
-            <Select value={selectedColor} onValueChange={setSelectedColor}>
+            <Select value={selectedColor} onValueChange={(value) => {
+              console.log('🎨 Color selected:', value)
+              setSelectedColor(value)
+            }}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
@@ -74,7 +104,10 @@ export const ProductVariationSelector = ({
         {product.sizes && product.sizes.length > 0 && (
           <div className="space-y-2">
             <Label className="text-xs">Tamanho</Label>
-            <Select value={selectedSize} onValueChange={setSelectedSize}>
+            <Select value={selectedSize} onValueChange={(value) => {
+              console.log('📏 Size selected:', value)
+              setSelectedSize(value)
+            }}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
@@ -103,6 +136,7 @@ export const ProductVariationSelector = ({
             size="sm"
             variant="outline"
             onClick={() => {
+              console.log('❌ Canceling selection for:', product.name)
               setShowSelectors(false)
               setSelectedColor('')
               setSelectedSize('')
@@ -119,7 +153,10 @@ export const ProductVariationSelector = ({
   return (
     <Button
       size="sm"
-      onClick={() => onAddToCart(product.id, '', '')}
+      onClick={() => {
+        console.log('🛒 Simple add to cart for:', product.name)
+        onAddToCart(product.id, '', '')
+      }}
       disabled={disabled || product.stock === 0}
       className="bg-copper-500 hover:bg-copper-600"
     >
