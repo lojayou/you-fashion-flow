@@ -323,7 +323,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           email: string
-          id: string
+          id?: string
           name: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null

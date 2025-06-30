@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -51,21 +52,22 @@ export function useCreateUser() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .insert([{
+        .insert({
           name: userData.name,
           email: userData.email,
           phone: userData.phone,
           role: userData.role,
           status: 'active' as const
-        }])
+        })
         .select()
+        .single()
 
       if (error) {
         console.error('Error creating user:', error)
         throw error
       }
 
-      return data?.[0]
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
