@@ -213,11 +213,16 @@ function parseGroupingKey(key: string, grouping: ChartGrouping): Date {
 
 function getProperMonday(date: Date): Date {
   const monday = new Date(date)
-  const dayOfWeek = date.getDay()
+  const dayOfWeek = date.getDay() // 0 = domingo, 1 = segunda, ..., 6 = sábado
   
-  // Ajustar para segunda-feira (1) ser o primeiro dia da semana
-  // Se for domingo (0), voltar 6 dias; senão, voltar (dayOfWeek - 1) dias
-  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  // Calcular quantos dias precisamos voltar para chegar na segunda-feira
+  let daysToSubtract = dayOfWeek - 1
+  
+  // Se for domingo (0), precisamos voltar 6 dias para chegar na segunda-feira
+  if (dayOfWeek === 0) {
+    daysToSubtract = 6
+  }
+  
   monday.setDate(date.getDate() - daysToSubtract)
   
   // Garantir que seja o início do dia
