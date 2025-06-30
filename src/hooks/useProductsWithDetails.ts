@@ -32,18 +32,25 @@ export const useProductsWithDetails = () => {
           colors,
           sizes,
           description,
-          categories!left(name),
-          brands!left(name)
+          categories(name),
+          brands(name)
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
 
       if (error) {
         console.error('❌ Erro ao buscar produtos:', error)
+        console.error('❌ Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
         throw error
       }
 
       console.log('✅ Produtos encontrados:', data?.length || 0)
+      console.log('📋 Dados dos produtos:', data)
 
       return (data || []).map(product => ({
         id: product.id,
