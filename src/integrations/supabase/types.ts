@@ -251,7 +251,7 @@ export type Database = {
         Row: {
           brand: string | null
           category: string | null
-          colors: string[] | null
+          color: string | null
           cost_price: number | null
           created_at: string | null
           created_by: string | null
@@ -261,7 +261,7 @@ export type Database = {
           min_stock: number | null
           name: string
           sale_price: number
-          sizes: string[] | null
+          size: string | null
           sku: string
           status: Database["public"]["Enums"]["product_status"] | null
           stock: number | null
@@ -270,7 +270,7 @@ export type Database = {
         Insert: {
           brand?: string | null
           category?: string | null
-          colors?: string[] | null
+          color?: string | null
           cost_price?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -280,7 +280,7 @@ export type Database = {
           min_stock?: number | null
           name: string
           sale_price: number
-          sizes?: string[] | null
+          size?: string | null
           sku: string
           status?: Database["public"]["Enums"]["product_status"] | null
           stock?: number | null
@@ -289,7 +289,7 @@ export type Database = {
         Update: {
           brand?: string | null
           category?: string | null
-          colors?: string[] | null
+          color?: string | null
           cost_price?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -299,7 +299,7 @@ export type Database = {
           min_stock?: number | null
           name?: string
           sale_price?: number
-          sizes?: string[] | null
+          size?: string | null
           sku?: string
           status?: Database["public"]["Enums"]["product_status"] | null
           stock?: number | null

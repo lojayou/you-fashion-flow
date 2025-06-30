@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TimeFilter } from '@/components/TimeFilter'
 import { ProductViewDialog } from '@/components/ProductViewDialog'
 import { ProductEditDialog } from '@/components/ProductEditDialog'
+import { ProductCreateDialog } from '@/components/ProductCreateDialog'
+import { useProductsWithDetails } from '@/hooks/useProductsWithDetails'
 import { 
   Search, 
   Filter, 
@@ -46,105 +49,37 @@ export default function Stock() {
   const [selectedProductForEdit, setSelectedProductForEdit] = useState<Product | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
-  // Mock products data
-  const mockProducts: Product[] = [
-    {
-      id: '1',
-      name: 'Blusa Elegante Social',
-      sku: 'BLS001',
-      category: 'Blusas',
-      brand: 'Fashion Style',
-      description: 'Blusa social elegante para uso profissional',
-      salePrice: 89.90,
-      costPrice: 45.00,
-      stock: 3,
-      minStock: 5,
-      size: 'M',
-      color: 'Branco',
-      status: 'active',
-      featured: true,
-      createdAt: '2025-06-01T10:00:00',
-      createdBy: 'Admin'
-    },
-    {
-      id: '2',
-      name: 'Calça Jeans Skinny',
-      sku: 'CJN002',
-      category: 'Calças',
-      brand: 'Denim Co',
-      description: 'Calça jeans modelo skinny, corte moderno',
-      salePrice: 129.90,
-      costPrice: 65.00,
-      stock: 8,
-      minStock: 5,
-      size: '38',
-      color: 'Azul',
-      status: 'active',
-      featured: false,
-      createdAt: '2025-06-02T14:30:00',
-      createdBy: 'Admin'
-    },
-    {
-      id: '3',
-      name: 'Vestido Festa Longo',
-      sku: 'VFL003',
-      category: 'Vestidos',
-      brand: 'Elegance',
-      description: 'Vestido longo para festas e eventos especiais',
-      salePrice: 199.90,
-      costPrice: 95.00,
-      stock: 2,
-      minStock: 3,
-      size: 'P',
-      color: 'Vermelho',
-      status: 'active',
-      featured: true,
-      createdAt: '2025-06-03T16:15:00',
-      createdBy: 'Admin'
-    },
-    {
-      id: '4',
-      name: 'Saia Midi Plissada',
-      sku: 'SMP004',
-      category: 'Saias',
-      brand: 'Fashion Style',
-      description: 'Saia midi com pregas, versatil para várias ocasiões',
-      salePrice: 79.90,
-      costPrice: 38.00,
-      stock: 12,
-      minStock: 5,
-      size: 'G',
-      color: 'Bege',
-      status: 'active',
-      featured: false,
-      createdAt: '2025-06-04T09:20:00',
-      createdBy: 'Admin'
-    },
-    {
-      id: '5',
-      name: 'Blazer Executivo',
-      sku: 'BLZ005',
-      category: 'Blazers',
-      brand: 'Executive',
-      description: 'Blazer executivo para look profissional',
-      salePrice: 159.90,
-      costPrice: 78.00,
-      stock: 0,
-      minStock: 3,
-      size: 'M',
-      color: 'Preto',
-      status: 'inactive',
-      featured: false,
-      createdAt: '2025-06-05T11:45:00',
-      createdBy: 'Admin'
-    }
-  ]
+  const { data: products = [], refetch } = useProductsWithDetails()
 
-  const categories = ['Blusas', 'Calças', 'Vestidos', 'Saias', 'Blazers']
+  const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
+    console.log('Period changed to:', period, customDates)
+  }
 
-  const filteredProducts = mockProducts.filter(product => {
+  // Convert products to the expected format for compatibility
+  const convertedProducts: Product[] = products.map(product => ({
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    category: product.category || '',
+    brand: product.brand || '',
+    description: product.description || '',
+    salePrice: product.sale_price,
+    costPrice: 0, // Not available in ProductWithDetails
+    stock: product.stock,
+    minStock: 5, // Default value
+    size: product.size || '',
+    color: product.color || '',
+    status: 'active' as const, // All products from useProductsWithDetails are active
+    featured: false, // Not available in ProductWithDetails
+    createdAt: new Date().toISOString(),
+    createdBy: 'Admin'
+  }))
+
+  const categories = [...new Set(products.filter(p => p.category).map(p => p.category!))]
+
+  const filteredProducts = convertedProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.brand.toLowerCase().includes(searchTerm.toLowerCase())
@@ -155,13 +90,9 @@ export default function Stock() {
     return matchesSearch && matchesCategory && matchesStatus
   })
 
-  const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
-    console.log('Period changed to:', period, customDates)
-  }
-
-  const lowStockProducts = mockProducts.filter(product => product.stock <= product.minStock && product.stock > 0)
-  const outOfStockProducts = mockProducts.filter(product => product.stock === 0)
-  const featuredProducts = mockProducts.filter(product => product.featured)
+  const lowStockProducts = convertedProducts.filter(product => product.stock <= product.minStock && product.stock > 0)
+  const outOfStockProducts = convertedProducts.filter(product => product.stock === 0)
+  const featuredProducts = convertedProducts.filter(product => product.featured)
 
   const getStockBadge = (product: Product) => {
     if (product.stock === 0) {
@@ -190,7 +121,11 @@ export default function Stock() {
   }
 
   const handleProductUpdated = () => {
-    setRefreshKey(prev => prev + 1)
+    refetch()
+  }
+
+  const handleProductCreated = () => {
+    refetch()
   }
 
   return (
@@ -202,7 +137,10 @@ export default function Stock() {
         </div>
         <div className="flex items-center space-x-4">
           <TimeFilter onPeriodChange={handlePeriodChange} />
-          <Button className="bg-copper-500 hover:bg-copper-600">
+          <Button 
+            className="bg-copper-500 hover:bg-copper-600"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Novo Produto
           </Button>
@@ -216,7 +154,7 @@ export default function Stock() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total de Produtos</p>
-                <p className="text-2xl font-bold">{mockProducts.length}</p>
+                <p className="text-2xl font-bold">{convertedProducts.length}</p>
               </div>
               <Package className="h-8 w-8 text-copper-500" />
             </div>
@@ -339,22 +277,22 @@ export default function Stock() {
                     
                     <div>
                       <p className="text-sm text-muted-foreground">Categoria</p>
-                      <p className="font-medium">{product.category}</p>
+                      <p className="font-medium">{product.category || '—'}</p>
                     </div>
                     
                     <div>
                       <p className="text-sm text-muted-foreground">Marca</p>
-                      <p className="font-medium">{product.brand}</p>
+                      <p className="font-medium">{product.brand || '—'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">Tamanho</p>
-                      <p className="font-medium">{product.size}</p>
+                      <p className="font-medium">{product.size || '—'}</p>
                     </div>
 
                     <div>
                       <p className="text-sm text-muted-foreground">Cor</p>
-                      <p className="font-medium">{product.color}</p>
+                      <p className="font-medium">{product.color || '—'}</p>
                     </div>
                     
                     <div>
@@ -409,6 +347,12 @@ export default function Stock() {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onProductUpdated={handleProductUpdated}
+      />
+
+      <ProductCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onProductCreated={handleProductCreated}
       />
     </div>
   )

@@ -22,16 +22,16 @@ export function ProductTableRow({ product, onAddToCart }: ProductTableRowProps) 
               {product.description}
             </p>
           )}
-          {(product.colors.length > 0 || product.sizes.length > 0) && (
+          {(product.color || product.size) && (
             <div className="flex gap-1 mt-1">
-              {product.colors.length > 0 && (
+              {product.color && (
                 <Badge variant="outline" className="text-xs">
-                  {product.colors.length} cor{product.colors.length > 1 ? 'es' : ''}
+                  {product.color}
                 </Badge>
               )}
-              {product.sizes.length > 0 && (
+              {product.size && (
                 <Badge variant="outline" className="text-xs">
-                  {product.sizes.length} tam{product.sizes.length > 1 ? 's' : ''}
+                  {product.size}
                 </Badge>
               )}
             </div>
