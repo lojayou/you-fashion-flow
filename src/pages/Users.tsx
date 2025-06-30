@@ -1,121 +1,82 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import { 
   Search, 
   Filter, 
   Users as UsersIcon, 
-  Plus,
   Edit,
   Shield,
   Eye,
   UserCheck,
   UserX,
-  Key
+  Key,
+  Loader2
 } from 'lucide-react'
-import { User } from '@/contexts/AuthContext'
+import { useUsers, useUpdateUserStatus, UserProfile } from '@/hooks/useUsers'
+import { CreateUserDialog } from '@/components/CreateUserDialog'
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  // Mock users data
-  const mockUsers: User[] = [
-    {
-      id: '1',
-      name: 'Administrador',
-      email: 'admin@youfashion.com',
-      phone: '(11) 99999-9999',
-      status: 'active',
-      role: 'Administrador',
-      permissions: {
-        dashboard: true,
-        pdv: true,
-        orders: true,
-        stock: true,
-        users: true
-      },
-      createdAt: '2025-06-01T10:00:00',
-      createdBy: 'Sistema'
-    },
-    {
-      id: '2',
-      name: 'Maria Silva',
-      email: 'maria@youfashion.com',
-      phone: '(11) 98888-8888',
-      status: 'active',
-      role: 'Gerente',
-      permissions: {
-        dashboard: true,
-        pdv: true,
-        orders: true,
-        stock: true,
-        users: false
-      },
-      createdAt: '2025-06-02T14:30:00',
-      createdBy: 'Administrador'
-    },
-    {
-      id: '3',
-      name: 'João Santos',
-      email: 'joao@youfashion.com',
-      phone: '(11) 97777-7777',
-      status: 'active',
-      role: 'Vendedor',
-      permissions: {
-        dashboard: true,
-        pdv: true,
-        orders: true,
-        stock: false,
-        users: false
-      },
-      createdAt: '2025-06-03T16:15:00',
-      createdBy: 'Administrador'
-    },
-    {
-      id: '4',
-      name: 'Ana Costa',
-      email: 'ana@youfashion.com',
-      phone: '(11) 96666-6666',
-      status: 'blocked',
-      role: 'Caixa',
-      permissions: {
-        dashboard: false,
-        pdv: true,
-        orders: false,
-        stock: false,
-        users: false
-      },
-      createdAt: '2025-06-04T09:20:00',
-      createdBy: 'Administrador'
-    }
-  ]
+  const { data: users = [], isLoading, error } = useUsers()
+  const updateStatusMutation = useUpdateUserStatus()
 
-  const filteredUsers = mockUsers.filter(user => {
+  const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.phone.includes(searchTerm)
+                         (user.phone && user.phone.includes(searchTerm))
     
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter
 
     return matchesSearch && matchesStatus
   })
 
-  const activeUsers = mockUsers.filter(user => user.status === 'active')
-  const blockedUsers = mockUsers.filter(user => user.status === 'blocked')
-  const adminUsers = mockUsers.filter(user => user.permissions.users === true)
+  const activeUsers = users.filter(user => user.status === 'active')
+  const blockedUsers = users.filter(user => user.status === 'blocked')
+  const adminUsers = users.filter(user => user.role === 'admin')
 
-  const getStatusBadge = (status: User['status']) => {
+  const getStatusBadge = (status: UserProfile['status']) => {
     return status === 'active' ? 
       <Badge variant="secondary" className="text-green-700 bg-green-100">Ativo</Badge> : 
       <Badge variant="destructive">Bloqueado</Badge>
   }
 
-  const getPermissionsCount = (permissions: User['permissions']) => {
-    return Object.values(permissions).filter(Boolean).length
+  const getRoleLabel = (role: UserProfile['role']) => {
+    const roleLabels = {
+      admin: 'Administrador',
+      manager: 'Gerente', 
+      seller: 'Vendedor',
+      cashier: 'Caixa'
+    }
+    return roleLabels[role] || role
+  }
+
+  const handleToggleStatus = async (userId: string, currentStatus: 'active' | 'blocked') => {
+    const newStatus = currentStatus === 'active' ? 'blocked' : 'active'
+    await updateStatusMutation.mutateAsync({ userId, status: newStatus })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Carregando usuários...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500 p-8">
+        <p className="text-lg font-semibold">Erro ao carregar usuários</p>
+        <p className="text-sm mt-2">{error.message}</p>
+      </div>
+    )
   }
 
   return (
@@ -125,10 +86,7 @@ export default function Users() {
           <h1 className="text-3xl font-bold text-foreground">Usuários</h1>
           <p className="text-muted-foreground">Gestão de usuários e permissões</p>
         </div>
-        <Button className="bg-copper-500 hover:bg-copper-600">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Usuário
-        </Button>
+        <CreateUserDialog />
       </div>
 
       {/* Quick Stats */}
@@ -237,13 +195,16 @@ export default function Users() {
       <Card>
         <CardHeader>
           <CardTitle>Lista de Usuários ({filteredUsers.length})</CardTitle>
-          <CardDescription>Gestão de usuários do sistema</CardDescription>
+          <CardDescription>Usuários cadastrados no sistema</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {filteredUsers.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                Nenhum usuário encontrado com os filtros aplicados
+                {users.length === 0 
+                  ? 'Nenhum usuário encontrado. Clique em "Novo Usuário" para adicionar o primeiro usuário.'
+                  : 'Nenhum usuário encontrado com os filtros aplicados'
+                }
               </p>
             ) : (
               filteredUsers.map((user) => (
@@ -259,17 +220,17 @@ export default function Users() {
                     
                     <div>
                       <p className="text-sm text-muted-foreground">Telefone</p>
-                      <p className="font-medium">{user.phone}</p>
+                      <p className="font-medium">{user.phone || 'Não informado'}</p>
                     </div>
                     
                     <div>
                       <p className="text-sm text-muted-foreground">Perfil</p>
-                      <p className="font-medium">{user.role}</p>
+                      <p className="font-medium">{getRoleLabel(user.role)}</p>
                     </div>
                     
                     <div>
-                      <p className="text-sm text-muted-foreground">Permissões</p>
-                      <p className="font-medium">{getPermissionsCount(user.permissions)} de 5</p>
+                      <p className="text-sm text-muted-foreground">Criado em</p>
+                      <p className="font-medium">{new Date(user.created_at).toLocaleDateString('pt-BR')}</p>
                     </div>
 
                     <div>
@@ -283,22 +244,16 @@ export default function Users() {
                       <Eye className="h-4 w-4" />
                     </Button>
                     
-                    <Button size="sm" variant="outline" title="Editar permissões">
-                      <Shield className="h-4 w-4" />
-                    </Button>
-                    
                     <Button size="sm" variant="outline" title="Editar usuário">
                       <Edit className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button size="sm" variant="outline" title="Redefinir senha">
-                      <Key className="h-4 w-4" />
                     </Button>
                     
                     <Button 
                       size="sm" 
                       variant={user.status === 'active' ? "destructive" : "default"}
                       title={user.status === 'active' ? "Bloquear usuário" : "Desbloquear usuário"}
+                      onClick={() => handleToggleStatus(user.id, user.status)}
+                      disabled={updateStatusMutation.isPending}
                     >
                       {user.status === 'active' ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                     </Button>
@@ -306,41 +261,6 @@ export default function Users() {
                 </div>
               ))
             )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Permissions Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Resumo de Permissões</CardTitle>
-          <CardDescription>Visão geral das permissões por área</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {['dashboard', 'pdv', 'orders', 'stock', 'users'].map((permission) => {
-              const usersWithPermission = mockUsers.filter(user => 
-                user.permissions[permission as keyof User['permissions']] === true
-              ).length
-              
-              const permissionLabels = {
-                dashboard: 'Dashboard',
-                pdv: 'PDV',
-                orders: 'Pedidos',
-                stock: 'Estoque',
-                users: 'Usuários'
-              }
-
-              return (
-                <div key={permission} className="p-4 border rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {permissionLabels[permission as keyof typeof permissionLabels]}
-                  </p>
-                  <p className="text-2xl font-bold text-copper-600">{usersWithPermission}</p>
-                  <p className="text-xs text-muted-foreground">usuários com acesso</p>
-                </div>
-              )
-            })}
           </div>
         </CardContent>
       </Card>
