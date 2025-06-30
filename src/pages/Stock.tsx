@@ -30,8 +30,8 @@ interface Product {
   costPrice?: number
   stock: number
   minStock: number
-  sizes: string[]
-  colors: string[]
+  size: string
+  color: string
   status: 'active' | 'inactive'
   featured: boolean
   createdAt: string
@@ -61,8 +61,8 @@ export default function Stock() {
       costPrice: 45.00,
       stock: 3,
       minStock: 5,
-      sizes: ['P', 'M', 'G'],
-      colors: ['Branco', 'Azul', 'Preto'],
+      size: 'M',
+      color: 'Branco',
       status: 'active',
       featured: true,
       createdAt: '2025-06-01T10:00:00',
@@ -79,8 +79,8 @@ export default function Stock() {
       costPrice: 65.00,
       stock: 8,
       minStock: 5,
-      sizes: ['36', '38', '40', '42'],
-      colors: ['Azul', 'Preto'],
+      size: '38',
+      color: 'Azul',
       status: 'active',
       featured: false,
       createdAt: '2025-06-02T14:30:00',
@@ -97,8 +97,8 @@ export default function Stock() {
       costPrice: 95.00,
       stock: 2,
       minStock: 3,
-      sizes: ['P', 'M', 'G'],
-      colors: ['Vermelho', 'Azul Marinho', 'Preto'],
+      size: 'P',
+      color: 'Vermelho',
       status: 'active',
       featured: true,
       createdAt: '2025-06-03T16:15:00',
@@ -115,8 +115,8 @@ export default function Stock() {
       costPrice: 38.00,
       stock: 12,
       minStock: 5,
-      sizes: ['P', 'M', 'G', 'GG'],
-      colors: ['Bege', 'Preto', 'Marinho'],
+      size: 'G',
+      color: 'Bege',
       status: 'active',
       featured: false,
       createdAt: '2025-06-04T09:20:00',
@@ -133,8 +133,8 @@ export default function Stock() {
       costPrice: 78.00,
       stock: 0,
       minStock: 3,
-      sizes: ['P', 'M', 'G'],
-      colors: ['Preto', 'Cinza'],
+      size: 'M',
+      color: 'Preto',
       status: 'inactive',
       featured: false,
       createdAt: '2025-06-05T11:45:00',
@@ -157,7 +157,6 @@ export default function Stock() {
 
   const handlePeriodChange = (period: string, customDates?: { from: Date; to: Date }) => {
     console.log('Period changed to:', period, customDates)
-    // Aqui você implementaria a lógica para filtrar movimentações de estoque baseado no período
   }
 
   const lowStockProducts = mockProducts.filter(product => product.stock <= product.minStock && product.stock > 0)
@@ -329,7 +328,7 @@ export default function Stock() {
                   key={product.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4">
                     <div>
                       <div className="flex items-center space-x-2">
                         <p className="font-medium">{product.name}</p>
@@ -347,6 +346,16 @@ export default function Stock() {
                       <p className="text-sm text-muted-foreground">Marca</p>
                       <p className="font-medium">{product.brand}</p>
                     </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tamanho</p>
+                      <p className="font-medium">{product.size}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">Cor</p>
+                      <p className="font-medium">{product.color}</p>
+                    </div>
                     
                     <div>
                       <p className="text-sm text-muted-foreground">Preço</p>
@@ -359,11 +368,9 @@ export default function Stock() {
                       <p className="text-sm text-muted-foreground">Estoque</p>
                       <p className="font-medium">{product.stock} unidades</p>
                       {getStockBadge(product)}
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      {getStatusBadge(product.status)}
+                      <div className="mt-1">
+                        {getStatusBadge(product.status)}
+                      </div>
                     </div>
                   </div>
                   

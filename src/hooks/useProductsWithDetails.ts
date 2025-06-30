@@ -10,8 +10,8 @@ export interface ProductWithDetails {
   stock: number
   category: string | null
   brand: string | null
-  colors: string[]
-  sizes: string[]
+  color: string | null
+  size: string | null
   description?: string
 }
 
@@ -27,8 +27,8 @@ export const useProductsWithDetails = () => {
           sku,
           sale_price,
           stock,
-          colors,
-          sizes,
+          color,
+          size,
           description,
           category,
           brand
@@ -52,8 +52,8 @@ export const useProductsWithDetails = () => {
         stock: product.stock || 0,
         category: product.category || null,
         brand: product.brand || null,
-        colors: product.colors || [],
-        sizes: product.sizes || [],
+        color: product.color || null,
+        size: product.size || null,
         description: product.description
       }))
     },

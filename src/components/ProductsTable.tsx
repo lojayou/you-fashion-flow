@@ -33,6 +33,8 @@ export function ProductsTable({ products, onAddToCart, searchTerm, categoryFilte
             <TableHead>SKU</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Marca</TableHead>
+            <TableHead>Tamanho</TableHead>
+            <TableHead>Cor</TableHead>
             <TableHead className="text-right">Preço</TableHead>
             <TableHead className="text-center">Estoque</TableHead>
             <TableHead className="text-center">Ação</TableHead>

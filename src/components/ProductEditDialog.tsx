@@ -25,8 +25,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -40,6 +38,8 @@ const productSchema = z.object({
   costPrice: z.number().optional(),
   stock: z.number().min(0, 'Estoque não pode ser negativo'),
   minStock: z.number().min(0, 'Estoque mínimo não pode ser negativo'),
+  size: z.string().optional(),
+  color: z.string().optional(),
   status: z.enum(['active', 'inactive']),
   featured: z.boolean(),
 })
@@ -57,8 +57,8 @@ interface Product {
   costPrice?: number
   stock: number
   minStock: number
-  sizes: string[]
-  colors: string[]
+  size: string
+  color: string
   status: 'active' | 'inactive'
   featured: boolean
   createdAt: string
@@ -73,10 +73,6 @@ interface ProductEditDialogProps {
 }
 
 export function ProductEditDialog({ product, open, onOpenChange, onProductUpdated }: ProductEditDialogProps) {
-  const [sizes, setSizes] = useState<string[]>([])
-  const [colors, setColors] = useState<string[]>([])
-  const [newSize, setNewSize] = useState('')
-  const [newColor, setNewColor] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -96,35 +92,13 @@ export function ProductEditDialog({ product, open, onOpenChange, onProductUpdate
         costPrice: product.costPrice,
         stock: product.stock,
         minStock: product.minStock,
+        size: product.size,
+        color: product.color,
         status: product.status,
         featured: product.featured,
       })
-      setSizes(product.sizes)
-      setColors(product.colors)
     }
   }, [product, form])
-
-  const addSize = () => {
-    if (newSize.trim() && !sizes.includes(newSize.trim())) {
-      setSizes([...sizes, newSize.trim()])
-      setNewSize('')
-    }
-  }
-
-  const removeSize = (sizeToRemove: string) => {
-    setSizes(sizes.filter(size => size !== sizeToRemove))
-  }
-
-  const addColor = () => {
-    if (newColor.trim() && !colors.includes(newColor.trim())) {
-      setColors([...colors, newColor.trim()])
-      setNewColor('')
-    }
-  }
-
-  const removeColor = (colorToRemove: string) => {
-    setColors(colors.filter(color => color !== colorToRemove))
-  }
 
   const onSubmit = async (data: ProductFormData) => {
     if (!product) return
@@ -143,8 +117,8 @@ export function ProductEditDialog({ product, open, onOpenChange, onProductUpdate
           cost_price: data.costPrice,
           stock: data.stock,
           min_stock: data.minStock,
-          sizes: sizes,
-          colors: colors,
+          size: data.size,
+          color: data.color,
           status: data.status,
           featured: data.featured,
         })
@@ -343,58 +317,40 @@ export function ProductEditDialog({ product, open, onOpenChange, onProductUpdate
               />
             </div>
 
-            {/* Tamanhos */}
-            <div>
-              <FormLabel>Tamanhos</FormLabel>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Adicionar tamanho (ex: P, M, G)"
-                    value={newSize}
-                    onChange={e => setNewSize(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addSize())}
-                  />
-                  <Button type="button" onClick={addSize}>Adicionar</Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {sizes.map((size, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                      {size}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removeSize(size)}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="size"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tamanho</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite o tamanho (ex: P, M, G, 36, 38)"
                       />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Cores */}
-            <div>
-              <FormLabel>Cores</FormLabel>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Adicionar cor (ex: Azul, Vermelho)"
-                    value={newColor}
-                    onChange={e => setNewColor(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addColor())}
-                  />
-                  <Button type="button" onClick={addColor}>Adicionar</Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {colors.map((color, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                      {color}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removeColor(color)}
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cor</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite a cor (ex: Azul, Vermelho, Preto)"
                       />
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

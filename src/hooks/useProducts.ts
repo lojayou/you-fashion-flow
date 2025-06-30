@@ -8,8 +8,8 @@ export interface Product {
   sku: string
   sale_price: number
   stock: number
-  colors: string[]
-  sizes: string[]
+  color: string | null
+  size: string | null
   description?: string
   status: 'active' | 'inactive'
   category?: string
@@ -28,8 +28,8 @@ export const useProducts = () => {
           sku,
           sale_price,
           stock,
-          colors,
-          sizes,
+          color,
+          size,
           description,
           status,
           category,
@@ -39,7 +39,6 @@ export const useProducts = () => {
         .order('name')
 
       if (error) {
-        console.error('Erro ao buscar produtos:', error)
         throw error
       }
 
