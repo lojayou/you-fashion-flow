@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -76,15 +75,15 @@ export default function PDV() {
 
   // Enhanced debug effect to monitor products data
   useEffect(() => {
-    console.log('🔄 PDV Component - Products data changed:')
-    console.log('📊 Products data:', products)
-    console.log('📈 Products count:', products?.length || 0)
-    console.log('⏳ Loading state:', isLoadingProducts)
-    console.log('❌ Error state:', productsError)
+    console.log('🔄 PDV Component - Products data atualizado:')
+    console.log('📊 Dados dos produtos:', products)
+    console.log('📈 Quantidade de produtos:', products?.length || 0)
+    console.log('⏳ Estado de carregamento:', isLoadingProducts)
+    console.log('❌ Estado de erro:', productsError)
     
     // Log detailed error information
     if (productsError) {
-      console.error('❌ Products error details:', {
+      console.error('❌ Detalhes do erro dos produtos:', {
         message: productsError.message,
         name: productsError.name,
         stack: productsError.stack
@@ -92,28 +91,19 @@ export default function PDV() {
     }
     
     if (products && products.length > 0) {
-      console.log('📋 Products received in PDV component:')
+      console.log('📋 Produtos recebidos no componente PDV:')
       products.forEach((product, index) => {
-        console.log(`  ${index + 1}. ${product.name} - ID: ${product.id} - Status: ${product.status}`)
+        console.log(`  ${index + 1}. ${product.name} - ID: ${product.id} - Status: ${product.status} - Estoque: ${product.stock}`)
       })
     } else if (!isLoadingProducts && !productsError) {
-      console.log('⚠️ No products found in PDV component')
-      console.log('🔍 Possible causes:')
-      console.log('  - No products with status="active" in database')
-      console.log('  - RLS (Row Level Security) blocking access')
-      console.log('  - Products table is empty')
-      console.log('  - Network/connection issues')
+      console.log('⚠️ Nenhum produto encontrado no componente PDV')
+      console.log('🔍 Possíveis causas:')
+      console.log('  - Nenhum produto com status="active" no banco')
+      console.log('  - RLS (Row Level Security) bloqueando acesso')
+      console.log('  - Tabela products está vazia')
+      console.log('  - Problemas de rede/conexão')
+      console.log('  - Hook useProducts retornando array vazio')
     }
-
-    // Log the current authentication state
-    const checkAuth = async () => {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      console.log('👤 Current user:', user?.id || 'Not authenticated')
-      if (authError) {
-        console.error('👤 Auth error:', authError)
-      }
-    }
-    checkAuth()
   }, [products, isLoadingProducts, productsError])
 
   const addToCart = (productId: string, color: string, size: string) => {
@@ -368,12 +358,20 @@ export default function PDV() {
           <CardContent>
             {/* Enhanced debug info panel */}
             <div className="mb-4 p-3 bg-muted/20 rounded-lg">
-              <p className="text-sm font-medium">Debug Info:</p>
-              <p className="text-xs">Loading: {isLoadingProducts ? 'Sim' : 'Não'}</p>
-              <p className="text-xs">Products: {products?.length || 0}</p>
-              <p className="text-xs">Error: {productsError ? 'Sim' : 'Não'}</p>
+              <p className="text-sm font-medium">Informações de Debug:</p>
+              <p className="text-xs">Carregando: {isLoadingProducts ? 'Sim' : 'Não'}</p>
+              <p className="text-xs">Produtos encontrados: {products?.length || 0}</p>
+              <p className="text-xs">Erro: {productsError ? 'Sim' : 'Não'}</p>
               {productsError && (
-                <p className="text-xs text-red-500">Error: {productsError.message}</p>
+                <p className="text-xs text-red-500">Erro: {productsError.message}</p>
+              )}
+              {products && products.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs">Com estoque > 0: {products.filter(p => p.stock > 0).length}</p>
+                  <p className="text-xs">Com estoque = 0: {products.filter(p => p.stock === 0).length}</p>
+                  <p className="text-xs">Sem categoria: {products.filter(p => !p.category_id).length}</p>
+                  <p className="text-xs">Sem marca: {products.filter(p => !p.brand_id).length}</p>
+                </div>
               )}
             </div>
             
@@ -400,7 +398,12 @@ export default function PDV() {
               <div className="text-center text-muted-foreground h-96 flex items-center justify-center">
                 <div>
                   <p>Nenhum produto ativo encontrado</p>
-                  <p className="text-sm mt-2">Verifique se existem produtos com status 'active' no banco</p>
+                  <p className="text-sm mt-2">Verifique:</p>
+                  <ul className="text-xs mt-1 space-y-1">
+                    <li>• Se existem produtos com status 'active'</li>
+                    <li>• Se o RLS permite acesso aos produtos</li>
+                    <li>• Se você está autenticado (se necessário)</li>
+                  </ul>
                   <Button 
                     onClick={() => window.location.reload()} 
                     className="mt-2"
@@ -442,12 +445,25 @@ export default function PDV() {
                               )}
                             </div>
                           )}
+                          {/* Indicador de estoque zero */}
+                          {product.stock === 0 && (
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              Estoque Zero
+                            </Badge>
+                          )}
+                          {/* Indicador de sem categoria/marca */}
+                          {(!product.category_id || !product.brand_id) && (
+                            <Badge variant="outline" className="text-xs mt-1">
+                              {!product.category_id && !product.brand_id ? 'Sem categoria/marca' :
+                               !product.category_id ? 'Sem categoria' : 'Sem marca'}
+                            </Badge>
+                          )}
                         </div>
                         <div className="ml-4">
                           <ProductVariationSelector
                             product={product}
                             onAddToCart={addToCart}
-                            disabled={product.stock === 0}
+                            disabled={false} // Permitir adicionar mesmo com estoque 0 durante carga inicial
                           />
                         </div>
                       </div>
