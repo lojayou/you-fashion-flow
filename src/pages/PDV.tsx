@@ -70,25 +70,50 @@ export default function PDV() {
   const [customPaymentType, setCustomPaymentType] = useState('')
   const { toast } = useToast()
 
-  // Use real products from database
+  // Use real products from database with enhanced debugging
   const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useProducts()
 
-  // Debug effect to monitor products data
+  // Enhanced debug effect to monitor products data
   useEffect(() => {
     console.log('🔄 PDV Component - Products data changed:')
-    console.log('📊 Products:', products)
+    console.log('📊 Products data:', products)
     console.log('📈 Products count:', products?.length || 0)
-    console.log('⏳ Loading:', isLoadingProducts)
-    console.log('❌ Error:', productsError)
+    console.log('⏳ Loading state:', isLoadingProducts)
+    console.log('❌ Error state:', productsError)
+    
+    // Log detailed error information
+    if (productsError) {
+      console.error('❌ Products error details:', {
+        message: productsError.message,
+        name: productsError.name,
+        cause: productsError.cause,
+        stack: productsError.stack
+      })
+    }
     
     if (products && products.length > 0) {
-      console.log('📋 Products in PDV component:')
+      console.log('📋 Products received in PDV component:')
       products.forEach((product, index) => {
-        console.log(`  ${index + 1}. ${product.name} - ID: ${product.id}`)
+        console.log(`  ${index + 1}. ${product.name} - ID: ${product.id} - Status: ${product.status}`)
       })
     } else if (!isLoadingProducts && !productsError) {
       console.log('⚠️ No products found in PDV component')
+      console.log('🔍 Possible causes:')
+      console.log('  - No products with status="active" in database')
+      console.log('  - RLS (Row Level Security) blocking access')
+      console.log('  - Products table is empty')
+      console.log('  - Network/connection issues')
     }
+
+    // Log the current authentication state
+    const checkAuth = async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      console.log('👤 Current user:', user?.id || 'Not authenticated')
+      if (authError) {
+        console.error('👤 Auth error:', authError)
+      }
+    }
+    checkAuth()
   }, [products, isLoadingProducts, productsError])
 
   const addToCart = (productId: string, color: string, size: string) => {
@@ -341,11 +366,15 @@ export default function PDV() {
             <CardDescription>Selecione produtos para adicionar</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Enhanced debug info panel */}
             <div className="mb-4 p-3 bg-muted/20 rounded-lg">
               <p className="text-sm font-medium">Debug Info:</p>
               <p className="text-xs">Loading: {isLoadingProducts ? 'Sim' : 'Não'}</p>
               <p className="text-xs">Products: {products?.length || 0}</p>
               <p className="text-xs">Error: {productsError ? 'Sim' : 'Não'}</p>
+              {productsError && (
+                <p className="text-xs text-red-500">Error: {productsError.message}</p>
+              )}
             </div>
             
             {isLoadingProducts ? (
@@ -371,6 +400,7 @@ export default function PDV() {
               <div className="text-center text-muted-foreground h-96 flex items-center justify-center">
                 <div>
                   <p>Nenhum produto ativo encontrado</p>
+                  <p className="text-sm mt-2">Verifique se existem produtos com status 'active' no banco</p>
                   <Button 
                     onClick={() => window.location.reload()} 
                     className="mt-2"
