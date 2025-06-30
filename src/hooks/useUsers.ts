@@ -50,16 +50,15 @@ export function useCreateUser() {
     }) => {
       console.log('Creating new user:', userData)
 
-      // Generate a UUID for the new user
       const { data, error } = await supabase
         .from('profiles')
-        .insert([{
+        .insert({
           name: userData.name,
           email: userData.email,
           phone: userData.phone,
           role: userData.role,
-          status: 'active'
-        }])
+          status: 'active' as const
+        })
         .select()
         .single()
 
