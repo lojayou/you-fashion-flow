@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,12 +13,14 @@ import {
   UserCheck,
   UserX,
   Key,
-  Loader2
+  Loader2,
+  Trash
 } from 'lucide-react'
 import { useUsers, useUpdateUserStatus, UserProfile } from '@/hooks/useUsers'
 import { CreateUserDialog } from '@/components/CreateUserDialog'
 import { UserViewDialog } from '@/components/UserViewDialog'
 import { EditUserDialog } from '@/components/EditUserDialog'
+import { DeleteUserDialog } from '@/components/DeleteUserDialog'
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,6 +28,7 @@ export default function Users() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const { data: users = [], isLoading, error } = useUsers()
   const updateStatusMutation = useUpdateUserStatus()
@@ -74,6 +76,11 @@ export default function Users() {
   const handleEditUser = (user: UserProfile) => {
     setSelectedUser(user)
     setEditDialogOpen(true)
+  }
+
+  const handleDeleteUser = (user: UserProfile) => {
+    setSelectedUser(user)
+    setDeleteDialogOpen(true)
   }
 
   if (isLoading) {
@@ -272,6 +279,15 @@ export default function Users() {
                     >
                       {user.status === 'active' ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                     </Button>
+
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      title="Excluir usuário"
+                      onClick={() => handleDeleteUser(user)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))
@@ -291,6 +307,12 @@ export default function Users() {
         user={selectedUser}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+      />
+
+      <DeleteUserDialog 
+        user={selectedUser}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
       />
     </div>
   )

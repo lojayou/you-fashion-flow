@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -171,6 +170,44 @@ export function useUpdateUserStatus() {
     onError: (error: any) => {
       toast({
         title: 'Erro ao atualizar status',
+        description: error.message || 'Ocorreu um erro inesperado',
+        variant: 'destructive',
+      })
+    }
+  })
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      console.log('Deleting user:', userId)
+
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
+
+      if (error) {
+        console.error('Error deleting user:', error)
+        throw error
+      }
+
+      return userId
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast({
+        title: 'Usuário excluído!',
+        description: 'O usuário foi removido do sistema com sucesso.',
+      })
+    },
+    onError: (error: any) => {
+      console.error('Error deleting user:', error)
+      toast({
+        title: 'Erro ao excluir usuário',
         description: error.message || 'Ocorreu um erro inesperado',
         variant: 'destructive',
       })
