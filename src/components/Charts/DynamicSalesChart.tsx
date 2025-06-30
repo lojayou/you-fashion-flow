@@ -119,7 +119,7 @@ export function DynamicSalesChart({ data, grouping, isLoading = false }: Dynamic
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
             Carregando dados...
           </div>
         </CardContent>
@@ -140,12 +140,12 @@ export function DynamicSalesChart({ data, grouping, isLoading = false }: Dynamic
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
             Nenhum dado encontrado para o período selecionado
           </div>
         ) : (
           <ChartContainer config={chartConfig}>
-            <AreaChart data={data}>
+            <AreaChart data={data} height={250}>
               <XAxis
                 dataKey="label"
                 tickLine={false}
