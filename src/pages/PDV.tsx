@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,8 +28,6 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CustomerSearch } from '@/components/CustomerSearch'
-import { ProductVariationSelector } from '@/components/ProductVariationSelector'
-import { useProducts } from '@/hooks/useProducts'
 import { supabase } from '@/integrations/supabase/client'
 
 interface CartItem {
@@ -70,42 +69,6 @@ export default function PDV() {
   const [customPaymentType, setCustomPaymentType] = useState('')
   const { toast } = useToast()
 
-  // Use real products from database with enhanced debugging
-  const { data: products = [], isLoading: isLoadingProducts, error: productsError } = useProducts()
-
-  // Enhanced debug effect to monitor products data
-  useEffect(() => {
-    console.log('🔄 PDV Component - Products data atualizado:')
-    console.log('📊 Dados dos produtos:', products)
-    console.log('📈 Quantidade de produtos:', products?.length || 0)
-    console.log('⏳ Estado de carregamento:', isLoadingProducts)
-    console.log('❌ Estado de erro:', productsError)
-    
-    // Log detailed error information
-    if (productsError) {
-      console.error('❌ Detalhes do erro dos produtos:', {
-        message: productsError.message,
-        name: productsError.name,
-        stack: productsError.stack
-      })
-    }
-    
-    if (products && products.length > 0) {
-      console.log('📋 Produtos recebidos no componente PDV:')
-      products.forEach((product, index) => {
-        console.log(`  ${index + 1}. ${product.name} - ID: ${product.id} - Status: ${product.status} - Estoque: ${product.stock}`)
-      })
-    } else if (!isLoadingProducts && !productsError) {
-      console.log('⚠️ Nenhum produto encontrado no componente PDV')
-      console.log('🔍 Possíveis causas:')
-      console.log('  - Nenhum produto com status="active" no banco')
-      console.log('  - RLS (Row Level Security) bloqueando acesso')
-      console.log('  - Tabela products está vazia')
-      console.log('  - Problemas de rede/conexão')
-      console.log('  - Hook useProducts retornando array vazio')
-    }
-  }, [products, isLoadingProducts, productsError])
-
   // Helper function to format currency input
   const formatCurrency = (value: string) => {
     // Remove non-numeric characters except dots and commas
@@ -121,34 +84,6 @@ export default function PDV() {
     const inputValue = e.target.value
     const formattedValue = formatCurrency(inputValue)
     setAmountPaid(formattedValue)
-  }
-
-  const addToCart = (productId: string, color: string, size: string) => {
-    console.log('🛒 Tentativa de adicionar ao carrinho:', { productId, color, size })
-    
-    const product = products.find(p => p.id === productId)
-    if (!product) {
-      console.error('❌ Produto não encontrado para adicionar ao carrinho:', productId)
-      return
-    }
-
-    console.log('✅ Produto encontrado para adicionar ao carrinho:', product)
-
-    const newItem: CartItem = {
-      id: Date.now().toString(),
-      name: product.name,
-      size: size || 'Único',
-      color: color || 'Padrão',
-      price: product.sale_price,
-      quantity: 1
-    }
-
-    setCart([...cart, newItem])
-    
-    toast({
-      title: 'Produto adicionado',
-      description: `${product.name} foi adicionado ao carrinho`,
-    })
   }
 
   const updateQuantity = (itemId: string, quantity: number) => {
@@ -362,138 +297,9 @@ export default function PDV() {
         <p className="text-muted-foreground">Sistema de vendas e condicionais</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Products Selection */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Plus className="h-5 w-5" />
-              <span>Produtos</span>
-            </CardTitle>
-            <CardDescription>Selecione produtos para adicionar</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Enhanced debug info panel */}
-            <div className="mb-4 p-3 bg-muted/20 rounded-lg">
-              <p className="text-sm font-medium">Informações de Debug:</p>
-              <p className="text-xs">Carregando: {isLoadingProducts ? 'Sim' : 'Não'}</p>
-              <p className="text-xs">Produtos encontrados: {products?.length || 0}</p>
-              <p className="text-xs">Erro: {productsError ? 'Sim' : 'Não'}</p>
-              {productsError && (
-                <p className="text-xs text-red-500">Erro: {productsError.message}</p>
-              )}
-              {products && products.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-xs">Com estoque {'>'} 0: {products.filter(p => p.stock > 0).length}</p>
-                  <p className="text-xs">Com estoque = 0: {products.filter(p => p.stock === 0).length}</p>
-                  <p className="text-xs">Sem categoria: {products.filter(p => !p.category_id).length}</p>
-                  <p className="text-xs">Sem marca: {products.filter(p => !p.brand_id).length}</p>
-                </div>
-              )}
-            </div>
-            
-            {isLoadingProducts ? (
-              <div className="flex items-center justify-center h-96">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="ml-2">Carregando produtos...</span>
-              </div>
-            ) : productsError ? (
-              <div className="text-center text-red-500 h-96 flex items-center justify-center">
-                <div>
-                  <p>Erro ao carregar produtos</p>
-                  <p className="text-sm">{productsError.message}</p>
-                  <Button 
-                    onClick={() => window.location.reload()} 
-                    className="mt-2"
-                    size="sm"
-                  >
-                    Recarregar
-                  </Button>
-                </div>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center text-muted-foreground h-96 flex items-center justify-center">
-                <div>
-                  <p>Nenhum produto ativo encontrado</p>
-                  <p className="text-sm mt-2">Verifique:</p>
-                  <ul className="text-xs mt-1 space-y-1">
-                    <li>• Se existem produtos com status 'active'</li>
-                    <li>• Se o RLS permite acesso aos produtos</li>
-                    <li>• Se você está autenticado (se necessário)</li>
-                  </ul>
-                  <Button 
-                    onClick={() => window.location.reload()} 
-                    className="mt-2"
-                    size="sm"
-                  >
-                    Recarregar
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <ScrollArea className="h-96">
-                <div className="space-y-3 pr-4">
-                  {products.map((product) => {
-                    console.log('🎨 Renderizando produto:', product.name, 'ID:', product.id)
-                    return (
-                      <div 
-                        key={product.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            SKU: {product.sku} • R$ {product.sale_price.toFixed(2)} • Estoque: {product.stock}
-                          </p>
-                          {product.description && (
-                            <p className="text-xs text-muted-foreground mt-1">{product.description}</p>
-                          )}
-                          {(product.colors?.length > 0 || product.sizes?.length > 0) && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {product.colors?.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  {product.colors.length} cor{product.colors.length > 1 ? 'es' : ''}
-                                </Badge>
-                              )}
-                              {product.sizes?.length > 0 && (
-                                <Badge variant="outline" className="text-xs">
-                                  {product.sizes.length} tamanho{product.sizes.length > 1 ? 's' : ''}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                          {/* Indicador de estoque zero */}
-                          {product.stock === 0 && (
-                            <Badge variant="secondary" className="text-xs mt-1">
-                              Estoque Zero
-                            </Badge>
-                          )}
-                          {/* Indicador de sem categoria/marca */}
-                          {(!product.category_id || !product.brand_id) && (
-                            <Badge variant="outline" className="text-xs mt-1">
-                              {!product.category_id && !product.brand_id ? 'Sem categoria/marca' :
-                               !product.category_id ? 'Sem categoria' : 'Sem marca'}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <ProductVariationSelector
-                            product={product}
-                            onAddToCart={addToCart}
-                            disabled={false} // Permitir adicionar mesmo com estoque 0 durante carga inicial
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 gap-6">
         {/* Cart */}
-        <Card className="lg:col-span-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <ShoppingCart className="h-5 w-5" />
