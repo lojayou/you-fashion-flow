@@ -17,10 +17,12 @@ export function QuickProductAdd() {
   const { toast } = useToast()
 
   // Filter products based on search term
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  ).slice(0, 5) // Show only top 5 results
+  const filteredProducts = searchTerm 
+    ? products.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+      ).slice(0, 5) // Show only top 5 results when searching
+    : products.slice(0, 10) // Show first 10 products when not searching
 
   const handleAddToCart = (product: ProductWithDetails) => {
     addToCart({
@@ -67,48 +69,69 @@ export function QuickProductAdd() {
           </div>
         )}
 
-        {searchTerm && !isLoading && (
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {filteredProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum produto encontrado
+        {!isLoading && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {searchTerm 
+                  ? `Resultados da busca (${filteredProducts.length})`
+                  : `Produtos disponíveis (${products.length})`
+                }
               </p>
-            ) : (
-              filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+              {searchTerm && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchTerm('')}
+                  className="text-xs"
                 >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {product.sku} • R$ {product.sale_price.toFixed(2)}
-                    </p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      {product.category && (
-                        <Badge variant="outline" className="text-xs">
-                          {product.category}
-                        </Badge>
-                      )}
-                      <Badge 
-                        variant={product.stock > 0 ? 'secondary' : 'destructive'}
-                        className="text-xs"
-                      >
-                        Estoque: {product.stock}
-                      </Badge>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => handleAddToCart(product)}
-                    disabled={product.stock === 0}
-                    className="bg-copper-500 hover:bg-copper-600"
+                  Limpar busca
+                </Button>
+              )}
+            </div>
+            
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {filteredProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {searchTerm ? 'Nenhum produto encontrado' : 'Nenhum produto disponível'}
+                </p>
+              ) : (
+                filteredProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))
-            )}
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.sku} • R$ {product.sale_price.toFixed(2)}
+                      </p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        {product.category && (
+                          <Badge variant="outline" className="text-xs">
+                            {product.category}
+                          </Badge>
+                        )}
+                        <Badge 
+                          variant={product.stock > 0 ? 'secondary' : 'destructive'}
+                          className="text-xs"
+                        >
+                          Estoque: {product.stock}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddToCart(product)}
+                      disabled={product.stock === 0}
+                      className="bg-copper-500 hover:bg-copper-600"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </CardContent>
