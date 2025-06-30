@@ -6,6 +6,7 @@ export interface ProductWithDetails {
   id: string
   name: string
   sku: string
+  product_code: string | null
   sale_price: number
   stock: number
   category: string | null
@@ -25,6 +26,7 @@ export const useProductsWithDetails = () => {
           id,
           name,
           sku,
+          product_code,
           sale_price,
           stock,
           color,
@@ -48,6 +50,7 @@ export const useProductsWithDetails = () => {
         id: product.id,
         name: product.name,
         sku: product.sku,
+        product_code: product.product_code || null,
         sale_price: product.sale_price,
         stock: product.stock || 0,
         category: product.category || null,

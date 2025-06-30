@@ -6,6 +6,7 @@ export interface Product {
   id: string
   name: string
   sku: string
+  product_code: string | null
   sale_price: number
   stock: number
   color: string | null
@@ -26,6 +27,7 @@ export const useProducts = () => {
           id,
           name,
           sku,
+          product_code,
           sale_price,
           stock,
           color,

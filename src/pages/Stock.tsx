@@ -27,6 +27,7 @@ interface Product {
   id: string
   name: string
   sku: string
+  product_code: string | null
   category: string
   brand: string
   description: string
@@ -64,6 +65,7 @@ export default function Stock() {
     id: product.id,
     name: product.name,
     sku: product.sku,
+    product_code: product.product_code,
     category: product.category || '',
     brand: product.brand || '',
     description: product.description || '',
@@ -84,7 +86,8 @@ export default function Stock() {
   const filteredProducts = convertedProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.brand.toLowerCase().includes(searchTerm.toLowerCase())
+                         product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (product.product_code && product.product_code.toLowerCase().includes(searchTerm.toLowerCase()))
     
     const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter
     const matchesStatus = statusFilter === 'all' || product.status === statusFilter
@@ -220,7 +223,7 @@ export default function Stock() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar produto, SKU ou marca..."
+                placeholder="Buscar produto, SKU, marca ou código..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -279,13 +282,16 @@ export default function Stock() {
                   key={product.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-8 gap-4">
                     <div>
                       <div className="flex items-center space-x-2">
                         <p className="font-medium">{product.name}</p>
                         {product.featured && <Star className="h-4 w-4 text-copper-500 fill-current" />}
                       </div>
                       <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
+                      {product.product_code && (
+                        <p className="text-sm text-muted-foreground">Código: {product.product_code}</p>
+                      )}
                     </div>
                     
                     <div>

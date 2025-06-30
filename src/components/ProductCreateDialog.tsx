@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -14,6 +14,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,12 +28,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AutocompleteInput } from '@/components/AutocompleteInput'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
-import { useProductsWithDetails } from '@/hooks/useProductsWithDetails'
 
 const productSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   sku: z.string().min(1, 'SKU é obrigatório'),
-  productCode: z.string().optional(),
+  product_code: z.string().optional(),
   description: z.string().optional(),
   category: z.string().optional(),
   brand: z.string().optional(),
@@ -56,30 +56,20 @@ interface ProductCreateDialogProps {
 
 export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: ProductCreateDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState({
+    categories: [] as string[],
+    brands: [] as string[],
+    sizes: [] as string[],
+    colors: [] as string[]
+  })
   const { toast } = useToast()
-  const { data: existingProducts = [] } = useProductsWithDetails()
-
-  // Get unique values for autocomplete
-  const suggestions = useMemo(() => {
-    const categories = [...new Set(existingProducts.map(p => p.category).filter(Boolean))]
-    const brands = [...new Set(existingProducts.map(p => p.brand).filter(Boolean))]
-    const sizes = [...new Set(existingProducts.map(p => p.size).filter(Boolean))]
-    const colors = [...new Set(existingProducts.map(p => p.color).filter(Boolean))]
-
-    return {
-      categories,
-      brands,
-      sizes,
-      colors
-    }
-  }, [existingProducts])
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
       sku: '',
-      productCode: '',
+      product_code: '',
       description: '',
       category: '',
       brand: '',
@@ -94,6 +84,30 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
     },
   })
 
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      try {
+        const { data: products, error } = await supabase
+          .from('products')
+          .select('category, brand, size, color')
+          .eq('status', 'active')
+
+        if (error) throw error
+
+        const categories = [...new Set(products?.filter(p => p.category).map(p => p.category) || [])]
+        const brands = [...new Set(products?.filter(p => p.brand).map(p => p.brand) || [])]
+        const sizes = [...new Set(products?.filter(p => p.size).map(p => p.size) || [])]
+        const colors = [...new Set(products?.filter(p => p.color).map(p => p.color) || [])]
+
+        setSuggestions({ categories, brands, sizes, colors })
+      } catch (error) {
+        console.error('Erro ao buscar sugestões:', error)
+      }
+    }
+
+    fetchSuggestions()
+  }, [])
+
   const onSubmit = async (data: ProductFormData) => {
     setIsLoading(true)
     try {
@@ -102,6 +116,7 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
         .insert({
           name: data.name,
           sku: data.sku,
+          product_code: data.product_code || null,
           description: data.description,
           category: data.category || null,
           brand: data.brand || null,
@@ -181,12 +196,12 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
 
             <FormField
               control={form.control}
-              name="productCode"
+              name="product_code"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Código do Produto</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="" />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -200,7 +215,7 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Textarea {...field} rows={3} placeholder="" />
+                    <Textarea {...field} rows={3} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -219,7 +234,7 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
                         value={field.value || ''}
                         onChange={field.onChange}
                         suggestions={suggestions.categories}
-                        placeholder=""
+                        placeholder="Digite ou selecione uma categoria"
                       />
                     </FormControl>
                     <FormMessage />
@@ -238,7 +253,7 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
                         value={field.value || ''}
                         onChange={field.onChange}
                         suggestions={suggestions.brands}
-                        placeholder=""
+                        placeholder="Digite ou selecione uma marca"
                       />
                     </FormControl>
                     <FormMessage />
@@ -337,7 +352,7 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
                         value={field.value || ''}
                         onChange={field.onChange}
                         suggestions={suggestions.sizes}
-                        placeholder=""
+                        placeholder="Digite ou selecione um tamanho"
                       />
                     </FormControl>
                     <FormMessage />
@@ -356,7 +371,7 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
                         value={field.value || ''}
                         onChange={field.onChange}
                         suggestions={suggestions.colors}
-                        placeholder=""
+                        placeholder="Digite ou selecione uma cor"
                       />
                     </FormControl>
                     <FormMessage />
@@ -395,9 +410,9 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">Produto Destaque</FormLabel>
-                      <p className="text-sm text-muted-foreground">
+                      <FormDescription>
                         Marcar produto como destaque
-                      </p>
+                      </FormDescription>
                     </div>
                     <FormControl>
                       <Switch
