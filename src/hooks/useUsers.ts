@@ -13,6 +13,7 @@ export interface UserProfile {
   created_at: string
   created_by?: string
   updated_at: string
+  password?: string
 }
 
 export function useUsers() {
@@ -47,6 +48,7 @@ export function useCreateUser() {
       email: string
       phone?: string
       role: 'admin' | 'manager' | 'seller' | 'cashier'
+      password: string
     }) => {
       console.log('Creating new user:', userData)
 
@@ -57,6 +59,7 @@ export function useCreateUser() {
           email: userData.email,
           phone: userData.phone,
           role: userData.role,
+          password: userData.password,
           status: 'active' as const
         })
         .select()
@@ -80,6 +83,57 @@ export function useCreateUser() {
       console.error('Error creating user:', error)
       toast({
         title: 'Erro ao criar usuário',
+        description: error.message || 'Ocorreu um erro inesperado',
+        variant: 'destructive',
+      })
+    }
+  })
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  return useMutation({
+    mutationFn: async ({ userId, userData }: { 
+      userId: string, 
+      userData: {
+        name?: string
+        email?: string
+        phone?: string
+        role?: 'admin' | 'manager' | 'seller' | 'cashier'
+        password?: string
+      }
+    }) => {
+      const updateData = {
+        ...userData,
+        updated_at: new Date().toISOString()
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', userId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating user:', error)
+        throw error
+      }
+
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast({
+        title: 'Usuário atualizado!',
+        description: 'As informações do usuário foram atualizadas com sucesso.',
+      })
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao atualizar usuário',
         description: error.message || 'Ocorreu um erro inesperado',
         variant: 'destructive',
       })

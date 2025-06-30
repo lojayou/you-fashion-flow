@@ -1,15 +1,19 @@
 
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { useState, useEffect } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus } from 'lucide-react'
-import { useCreateUser } from '@/hooks/useUsers'
+import { UserProfile, useUpdateUser } from '@/hooks/useUsers'
 
-export function CreateUserDialog() {
-  const [open, setOpen] = useState(false)
+interface EditUserDialogProps {
+  user: UserProfile | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,55 +22,64 @@ export function CreateUserDialog() {
     password: ''
   })
 
-  const createUserMutation = useCreateUser()
+  const updateUserMutation = useUpdateUser()
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        password: ''
+      })
+    }
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.email || !formData.role || !formData.password) {
+    if (!user || !formData.name || !formData.email || !formData.role) {
       return
     }
 
     try {
-      await createUserMutation.mutateAsync({
+      const updateData: any = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone || undefined,
-        role: formData.role,
-        password: formData.password
+        role: formData.role
+      }
+
+      // Só inclui a senha se foi preenchida
+      if (formData.password.trim()) {
+        updateData.password = formData.password
+      }
+
+      await updateUserMutation.mutateAsync({
+        userId: user.id,
+        userData: updateData
       })
       
-      setFormData({ name: '', email: '', phone: '', role: '' as any, password: '' })
-      setOpen(false)
+      onOpenChange(false)
     } catch (error) {
-      console.error('Error submitting form:', error)
+      console.error('Error updating user:', error)
     }
   }
 
-  const roleLabels = {
-    admin: 'Administrador',
-    manager: 'Gerente',
-    seller: 'Vendedor',
-    cashier: 'Caixa'
-  }
+  if (!user) return null
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-copper-500 hover:bg-copper-600">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Usuário
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Criar Novo Usuário</DialogTitle>
+          <DialogTitle>Editar Usuário</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Nome Completo *</Label>
+            <Label htmlFor="edit-name">Nome Completo *</Label>
             <Input
-              id="name"
+              id="edit-name"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Digite o nome completo"
@@ -75,9 +88,9 @@ export function CreateUserDialog() {
           </div>
 
           <div>
-            <Label htmlFor="email">Email *</Label>
+            <Label htmlFor="edit-email">Email *</Label>
             <Input
-              id="email"
+              id="edit-email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -87,9 +100,9 @@ export function CreateUserDialog() {
           </div>
 
           <div>
-            <Label htmlFor="phone">Telefone</Label>
+            <Label htmlFor="edit-phone">Telefone</Label>
             <Input
-              id="phone"
+              id="edit-phone"
               value={formData.phone}
               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               placeholder="(11) 99999-9999"
@@ -97,19 +110,18 @@ export function CreateUserDialog() {
           </div>
 
           <div>
-            <Label htmlFor="password">Senha *</Label>
+            <Label htmlFor="edit-password">Nova Senha</Label>
             <Input
-              id="password"
+              id="edit-password"
               type="password"
               value={formData.password}
               onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              placeholder="Digite a senha"
-              required
+              placeholder="Deixe em branco para manter a atual"
             />
           </div>
 
           <div>
-            <Label htmlFor="role">Perfil *</Label>
+            <Label htmlFor="edit-role">Perfil *</Label>
             <Select value={formData.role} onValueChange={(value: any) => setFormData(prev => ({ ...prev, role: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o perfil" />
@@ -124,15 +136,15 @@ export function CreateUserDialog() {
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button 
               type="submit" 
-              disabled={createUserMutation.isPending}
+              disabled={updateUserMutation.isPending}
               className="bg-copper-500 hover:bg-copper-600"
             >
-              {createUserMutation.isPending ? 'Criando...' : 'Criar Usuário'}
+              {updateUserMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </div>
         </form>

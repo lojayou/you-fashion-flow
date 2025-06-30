@@ -18,10 +18,15 @@ import {
 } from 'lucide-react'
 import { useUsers, useUpdateUserStatus, UserProfile } from '@/hooks/useUsers'
 import { CreateUserDialog } from '@/components/CreateUserDialog'
+import { UserViewDialog } from '@/components/UserViewDialog'
+import { EditUserDialog } from '@/components/EditUserDialog'
 
 export default function Users() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
 
   const { data: users = [], isLoading, error } = useUsers()
   const updateStatusMutation = useUpdateUserStatus()
@@ -59,6 +64,16 @@ export default function Users() {
   const handleToggleStatus = async (userId: string, currentStatus: 'active' | 'blocked') => {
     const newStatus = currentStatus === 'active' ? 'blocked' : 'active'
     await updateStatusMutation.mutateAsync({ userId, status: newStatus })
+  }
+
+  const handleViewUser = (user: UserProfile) => {
+    setSelectedUser(user)
+    setViewDialogOpen(true)
+  }
+
+  const handleEditUser = (user: UserProfile) => {
+    setSelectedUser(user)
+    setEditDialogOpen(true)
   }
 
   if (isLoading) {
@@ -240,11 +255,11 @@ export default function Users() {
                   </div>
                   
                   <div className="flex space-x-2 ml-4">
-                    <Button size="sm" variant="outline" title="Ver detalhes">
+                    <Button size="sm" variant="outline" title="Ver detalhes" onClick={() => handleViewUser(user)}>
                       <Eye className="h-4 w-4" />
                     </Button>
                     
-                    <Button size="sm" variant="outline" title="Editar usuário">
+                    <Button size="sm" variant="outline" title="Editar usuário" onClick={() => handleEditUser(user)}>
                       <Edit className="h-4 w-4" />
                     </Button>
                     
@@ -264,6 +279,19 @@ export default function Users() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <UserViewDialog 
+        user={selectedUser}
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+      />
+      
+      <EditUserDialog 
+        user={selectedUser}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
     </div>
   )
 }
