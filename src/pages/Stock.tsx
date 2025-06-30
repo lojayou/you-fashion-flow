@@ -1,4 +1,5 @@
-import { useState } from 'react'
+
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +9,9 @@ import { TimeFilter } from '@/components/TimeFilter'
 import { ProductViewDialog } from '@/components/ProductViewDialog'
 import { ProductEditDialog } from '@/components/ProductEditDialog'
 import { ProductCreateDialog } from '@/components/ProductCreateDialog'
+import { InfiniteScrollContainer } from '@/components/InfiniteScrollContainer'
 import { useProductsWithDetails } from '@/hooks/useProductsWithDetails'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { 
   Search, 
   Filter, 
@@ -57,36 +60,43 @@ export default function Stock() {
   }
 
   // Convert products to the expected format for compatibility
-  const convertedProducts: Product[] = products.map(product => ({
-    id: product.id,
-    name: product.name,
-    sku: product.sku,
-    category: product.category || '',
-    brand: product.brand || '',
-    description: product.description || '',
-    salePrice: product.sale_price,
-    costPrice: 0, // Not available in ProductWithDetails
-    stock: product.stock,
-    minStock: 5, // Default value
-    size: product.size || '',
-    color: product.color || '',
-    status: 'active' as const, // All products from useProductsWithDetails are active
-    featured: false, // Not available in ProductWithDetails
-    createdAt: new Date().toISOString(),
-    createdBy: 'Admin'
-  }))
+  const convertedProducts: Product[] = useMemo(() => 
+    products.map(product => ({
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      category: product.category || '',
+      brand: product.brand || '',
+      description: product.description || '',
+      salePrice: product.sale_price,
+      costPrice: 0,
+      stock: product.stock,
+      minStock: 5,
+      size: product.size || '',
+      color: product.color || '',
+      status: 'active' as const,
+      featured: false,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Admin'
+    })), [products])
 
   const categories = [...new Set(products.filter(p => p.category).map(p => p.category!))]
 
-  const filteredProducts = convertedProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.brand.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter
-    const matchesStatus = statusFilter === 'all' || product.status === statusFilter
+  const filteredProducts = useMemo(() => 
+    convertedProducts.filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           product.brand.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter
+      const matchesStatus = statusFilter === 'all' || product.status === statusFilter
 
-    return matchesSearch && matchesCategory && matchesStatus
+      return matchesSearch && matchesCategory && matchesStatus
+    }), [convertedProducts, searchTerm, categoryFilter, statusFilter])
+
+  const { displayedItems: displayedProducts, hasMore, loadMore } = useInfiniteScroll({
+    items: filteredProducts,
+    itemsPerPage: 20
   })
 
   const lowStockProducts = convertedProducts.filter(product => product.stock <= product.minStock && product.stock > 0)
@@ -247,90 +257,95 @@ export default function Stock() {
         </CardContent>
       </Card>
 
-      {/* Products List */}
+      {/* Products List with Infinite Scroll */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Produtos ({filteredProducts.length})</CardTitle>
           <CardDescription>Inventário de produtos da loja</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredProducts.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Nenhum produto encontrado com os filtros aplicados
-              </p>
-            ) : (
-              filteredProducts.map((product) => (
-                <div 
-                  key={product.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <p className="font-medium">{product.name}</p>
-                        {product.featured && <Star className="h-4 w-4 text-copper-500 fill-current" />}
+          {filteredProducts.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              Nenhum produto encontrado com os filtros aplicados
+            </p>
+          ) : (
+            <InfiniteScrollContainer
+              hasMore={hasMore}
+              loadMore={loadMore}
+            >
+              <div className="space-y-4">
+                {displayedProducts.map((product) => (
+                  <div 
+                    key={product.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <p className="font-medium">{product.name}</p>
+                          {product.featured && <Star className="h-4 w-4 text-copper-500 fill-current" />}
+                        </div>
+                        <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground">SKU: {product.sku}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground">Categoria</p>
-                      <p className="font-medium">{product.category || '—'}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground">Marca</p>
-                      <p className="font-medium">{product.brand || '—'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tamanho</p>
-                      <p className="font-medium">{product.size || '—'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">Cor</p>
-                      <p className="font-medium">{product.color || '—'}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground">Preço</p>
-                      <p className="font-medium">
-                        R$ {product.salePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground">Estoque</p>
-                      <p className="font-medium">{product.stock} unidades</p>
-                      {getStockBadge(product)}
-                      <div className="mt-1">
-                        {getStatusBadge(product.status)}
+                      
+                      <div>
+                        <p className="text-sm text-muted-foreground">Categoria</p>
+                        <p className="font-medium">{product.category || '—'}</p>
                       </div>
+                      
+                      <div>
+                        <p className="text-sm text-muted-foreground">Marca</p>
+                        <p className="font-medium">{product.brand || '—'}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-muted-foreground">Tamanho</p>
+                        <p className="font-medium">{product.size || '—'}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-muted-foreground">Cor</p>
+                        <p className="font-medium">{product.color || '—'}</p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-muted-foreground">Preço</p>
+                        <p className="font-medium">
+                          R$ {product.salePrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-muted-foreground">Estoque</p>
+                        <p className="font-medium">{product.stock} unidades</p>
+                        {getStockBadge(product)}
+                        <div className="mt-1">
+                          {getStatusBadge(product.status)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2 ml-4">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleViewProduct(product)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleEditProduct(product)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  
-                  <div className="flex space-x-2 ml-4">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleViewProduct(product)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleEditProduct(product)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))}
+              </div>
+            </InfiniteScrollContainer>
+          )}
         </CardContent>
       </Card>
 
