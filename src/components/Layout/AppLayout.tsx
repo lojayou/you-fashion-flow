@@ -1,3 +1,4 @@
+
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
 import { useAuth } from '@/contexts/AuthContext'
@@ -33,8 +34,20 @@ export function AppLayout({ children }: AppLayoutProps) {
         <AppSidebar />
         <main className="flex-1">
           <div className="p-6">
-            <div className="flex items-center mb-6">
-              <SidebarTrigger className="mr-4" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <SidebarTrigger className="mr-4" />
+                <div className="flex items-center space-x-3">
+                  <img 
+                    src="/lovable-uploads/5f0da134-62cd-41f1-ab2f-bf0c4bc61aa4.png" 
+                    alt="You Fashion & Style" 
+                    className="h-8 w-auto filter drop-shadow-sm"
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    Sistema de Gestão
+                  </div>
+                </div>
+              </div>
             </div>
             {children}
           </div>
