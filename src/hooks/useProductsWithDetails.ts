@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { supabase } from '@integrations/supabase/client'
 
 export interface ProductWithDetails {
   id: string
@@ -19,23 +19,6 @@ export const useProductsWithDetails = () => {
   return useQuery({
     queryKey: ['products-with-details'],
     queryFn: async (): Promise<ProductWithDetails[]> => {
-      console.log('🔍 Iniciando busca de produtos...')
-      
-      // Primeiro, vamos verificar se existem produtos na tabela
-      const { data: productsCount, error: countError } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-
-      if (countError) {
-        console.error('❌ Erro ao contar produtos:', countError)
-      } else {
-        console.log('📊 Total de produtos ativos na tabela:', productsCount)
-      }
-
-      // Buscar produtos com campos diretos de categoria e marca
-      console.log('🔍 Buscando produtos com categoria e marca diretas...')
-      
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -51,48 +34,29 @@ export const useProductsWithDetails = () => {
           brand
         `)
         .eq('status', 'active')
-        .order('created_at', { ascending: false })
+        .order('name')
 
       if (error) {
-        console.error('❌ Erro ao buscar produtos:', error)
-        console.error('❌ Detalhes completos do erro:', JSON.stringify(error, null, 2))
+        console.error('Erro ao buscar produtos:', error)
         throw error
       }
 
-      console.log('✅ Produtos encontrados:', data?.length || 0)
-      console.log('📋 Dados brutos retornados:', JSON.stringify(data, null, 2))
-
-      if (!data || data.length === 0) {
-        console.warn('⚠️ Nenhum produto encontrado ou dados vazios')
+      if (!data) {
         return []
       }
 
-      const mappedProducts = data.map(product => {
-        console.log('🔄 Mapeando produto:', {
-          id: product.id,
-          name: product.name,
-          category: product.category,
-          brand: product.brand
-        })
-
-        return {
-          id: product.id,
-          name: product.name,
-          sku: product.sku,
-          sale_price: product.sale_price,
-          stock: product.stock,
-          category: product.category || null,
-          brand: product.brand || null,
-          colors: product.colors || [],
-          sizes: product.sizes || [],
-          description: product.description
-        }
-      })
-
-      console.log('✅ Produtos mapeados:', mappedProducts.length)
-      console.log('📋 Produtos finais:', JSON.stringify(mappedProducts, null, 2))
-
-      return mappedProducts
+      return data.map(product => ({
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        sale_price: product.sale_price,
+        stock: product.stock || 0,
+        category: product.category || null,
+        brand: product.brand || null,
+        colors: product.colors || [],
+        sizes: product.sizes || [],
+        description: product.description
+      }))
     },
     staleTime: 30000,
     gcTime: 60000,
