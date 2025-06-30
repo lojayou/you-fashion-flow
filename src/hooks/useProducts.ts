@@ -12,15 +12,15 @@ export interface Product {
   sizes: string[]
   description?: string
   status: 'active' | 'inactive'
-  category_id?: string
-  brand_id?: string
+  category?: string
+  brand?: string
 }
 
 export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
     queryFn: async (): Promise<Product[]> => {
-      console.log('🔍 Buscando produtos ativos - Hook corrigido...')
+      console.log('🔍 Buscando produtos ativos - Hook atualizado para nova estrutura...')
       
       try {
         // 1. Verificar autenticação atual
@@ -30,8 +30,8 @@ export const useProducts = () => {
           console.error('❌ Erro de autenticação:', authError)
         }
 
-        // 2. Buscar produtos usando LEFT JOIN para categorias/marcas
-        console.log('📋 Executando query com LEFT JOIN...')
+        // 2. Buscar produtos usando campos diretos de categoria e marca
+        console.log('📋 Executando query com campos diretos...')
         const { data: products, error } = await supabase
           .from('products')
           .select(`
@@ -44,8 +44,8 @@ export const useProducts = () => {
             sizes,
             description,
             status,
-            category_id,
-            brand_id
+            category,
+            brand
           `)
           .eq('status', 'active')
           .order('name')
@@ -53,7 +53,7 @@ export const useProducts = () => {
         console.log('📊 Query executada:')
         console.log('  - Filtro: status = "active"')
         console.log('  - Sem filtro de stock (permite estoque 0)')
-        console.log('  - LEFT JOIN implícito (permite category_id/brand_id NULL)')
+        console.log('  - Campos diretos: category, brand (sem relacionamento)')
         console.log('  - Ordenação: por nome')
 
         if (error) {
@@ -85,18 +85,18 @@ export const useProducts = () => {
             console.log(`      Status: ${product.status}`)
             console.log(`      Estoque: ${product.stock}`)
             console.log(`      Preço: R$ ${product.sale_price}`)
-            console.log(`      Category ID: ${product.category_id || 'NULL'}`)
-            console.log(`      Brand ID: ${product.brand_id || 'NULL'}`)
+            console.log(`      Categoria: ${product.category || 'Não definida'}`)
+            console.log(`      Marca: ${product.brand || 'Não definida'}`)
             console.log(`      ---`)
           })
 
           // Análise dos dados
           const withStock = products.filter(p => p.stock > 0)
           const withoutStock = products.filter(p => p.stock === 0)
-          const withCategory = products.filter(p => p.category_id)
-          const withoutCategory = products.filter(p => !p.category_id)
-          const withBrand = products.filter(p => p.brand_id)
-          const withoutBrand = products.filter(p => !p.brand_id)
+          const withCategory = products.filter(p => p.category)
+          const withoutCategory = products.filter(p => !p.category)
+          const withBrand = products.filter(p => p.brand)
+          const withoutBrand = products.filter(p => !p.brand)
 
           console.log('📊 Análise dos produtos encontrados:')
           console.log(`  - Com estoque > 0: ${withStock.length}`)
