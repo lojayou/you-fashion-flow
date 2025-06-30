@@ -1,6 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@integrations/supabase/client'
+import { supabase } from '@/integrations/supabase/client'
 
 export interface ProductWithDetails {
   id: string
@@ -37,7 +37,6 @@ export const useProductsWithDetails = () => {
         .order('name')
 
       if (error) {
-        console.error('Erro ao buscar produtos:', error)
         throw error
       }
 
