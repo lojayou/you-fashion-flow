@@ -24,6 +24,9 @@ interface DynamicSalesChartProps {
 }
 
 export function DynamicSalesChart({ data, grouping, isLoading = false }: DynamicSalesChartProps) {
+  console.log('Chart data:', data)
+  console.log('Chart grouping:', grouping)
+
   const getChartTitle = () => {
     switch (grouping) {
       case 'hour': return 'Vendas por Hora'

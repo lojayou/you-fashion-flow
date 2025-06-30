@@ -35,15 +35,24 @@ export function useDynamicSalesChart(options: DynamicSalesChartOptions = {}) {
   const { data: salesData, isLoading } = useQuery({
     queryKey: ['dynamic-sales-chart', period, customDates, grouping],
     queryFn: async () => {
+      console.log('Fetching sales data with grouping:', grouping)
+      console.log('Date range:', dateRange)
+      
+      // Buscar pedidos com status correto (incluindo múltiplos status possíveis)
       const { data: orders, error } = await supabase
         .from('orders')
         .select('total_amount, created_at')
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .eq('status', 'delivered')
+        .in('status', ['delivered', 'paid', 'completed', 'finalizado']) // Múltiplos status válidos
       
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching orders:', error)
+        throw error
+      }
 
+      console.log('Orders found:', orders?.length || 0)
+      
       return generateChartData(orders || [], dateRange, grouping)
     }
   })
@@ -65,13 +74,19 @@ function generateChartData(
   // Initialize all periods with zero values
   initializePeriods(dataMap, dateRange, grouping)
 
-  // Aggregate actual sales data
+  // Aggregate actual sales data with timezone conversion
   orders.forEach(order => {
+    // Converter para timezone do Brasil
     const orderDate = new Date(order.created_at)
-    const key = getGroupingKey(orderDate, grouping)
+    const brasilOffset = -3 * 60 // UTC-3 em minutos
+    const localDate = new Date(orderDate.getTime() + brasilOffset * 60 * 1000)
+    
+    const key = getGroupingKey(localDate, grouping)
     const currentValue = dataMap.get(key) || 0
     dataMap.set(key, currentValue + parseFloat(order.total_amount.toString()))
   })
+
+  console.log('Generated data map:', Array.from(dataMap.entries()))
 
   // Convert to array and sort chronologically
   return Array.from(dataMap.entries())
@@ -98,10 +113,22 @@ function initializePeriods(
 
   switch (grouping) {
     case 'hour':
-      // Initialize all hours of the day
-      for (let hour = 0; hour < 24; hour++) {
-        const key = hour.toString().padStart(2, '0') + ':00'
-        dataMap.set(key, 0)
+      // Para período de um dia, inicializar apenas as horas desse dia
+      const startHour = current.getHours()
+      const endHour = end.getHours()
+      
+      if (current.toDateString() === end.toDateString()) {
+        // Mesmo dia - apenas as horas do período
+        for (let hour = startHour; hour <= endHour; hour++) {
+          const key = hour.toString().padStart(2, '0') + ':00'
+          dataMap.set(key, 0)
+        }
+      } else {
+        // Dias diferentes - todas as 24 horas
+        for (let hour = 0; hour < 24; hour++) {
+          const key = hour.toString().padStart(2, '0') + ':00'
+          dataMap.set(key, 0)
+        }
       }
       break
 
@@ -116,7 +143,7 @@ function initializePeriods(
 
     case 'week':
       // Initialize all weeks in the range (Monday to Sunday)
-      const startOfWeek = getMonday(new Date(current))
+      const startOfWeek = getProperMonday(new Date(current))
       current.setTime(startOfWeek.getTime())
       
       while (current <= end) {
@@ -149,7 +176,7 @@ function getGroupingKey(date: Date, grouping: ChartGrouping): string {
       return date.toISOString().split('T')[0]
     
     case 'week':
-      const monday = getMonday(date)
+      const monday = getProperMonday(date)
       const sunday = new Date(monday)
       sunday.setDate(monday.getDate() + 6)
       return `${monday.toISOString().split('T')[0]} to ${sunday.toISOString().split('T')[0]}`
@@ -184,10 +211,17 @@ function parseGroupingKey(key: string, grouping: ChartGrouping): Date {
   }
 }
 
-function getMonday(date: Date): Date {
+function getProperMonday(date: Date): Date {
   const monday = new Date(date)
   const dayOfWeek = date.getDay()
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // Adjust for Sunday being 0
-  monday.setDate(date.getDate() + diff)
+  
+  // Ajustar para segunda-feira (1) ser o primeiro dia da semana
+  // Se for domingo (0), voltar 6 dias; senão, voltar (dayOfWeek - 1) dias
+  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  monday.setDate(date.getDate() - daysToSubtract)
+  
+  // Garantir que seja o início do dia
+  monday.setHours(0, 0, 0, 0)
+  
   return monday
 }
