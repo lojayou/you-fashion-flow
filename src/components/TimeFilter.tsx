@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CalendarIcon, Clock } from 'lucide-react'
+import { ptBR } from 'date-fns/locale'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { TimeFilterOption, DateRange } from '@/utils/dateFilters'
@@ -65,7 +66,7 @@ export function TimeFilter({ onPeriodChange }: TimeFilterProps) {
                 )}
               >
                 <CalendarIcon className="mr-1 h-3 w-3" />
-                {customFromDate ? format(customFromDate, "dd/MM") : "De"}
+                {customFromDate ? format(customFromDate, "dd/MM", { locale: ptBR }) : "De"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -74,6 +75,7 @@ export function TimeFilter({ onPeriodChange }: TimeFilterProps) {
                 selected={customFromDate}
                 onSelect={setCustomFromDate}
                 initialFocus
+                locale={ptBR}
                 className="p-3 pointer-events-auto"
               />
             </PopoverContent>
@@ -90,7 +92,7 @@ export function TimeFilter({ onPeriodChange }: TimeFilterProps) {
                 )}
               >
                 <CalendarIcon className="mr-1 h-3 w-3" />
-                {customToDate ? format(customToDate, "dd/MM") : "Até"}
+                {customToDate ? format(customToDate, "dd/MM", { locale: ptBR }) : "Até"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -99,6 +101,7 @@ export function TimeFilter({ onPeriodChange }: TimeFilterProps) {
                 selected={customToDate}
                 onSelect={setCustomToDate}
                 initialFocus
+                locale={ptBR}
                 className="p-3 pointer-events-auto"
               />
             </PopoverContent>

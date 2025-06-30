@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -6,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { TimeFilter } from '@/components/TimeFilter'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { TimeFilterOption, DateRange } from '@/utils/dateFilters'
+import { formatBrazilianDate } from '@/utils/dateUtils'
 import { 
   ShoppingBag, 
   Package, 
@@ -58,7 +60,7 @@ export default function Dashboard() {
       conditional.phone,
       `R$ ${conditional.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       conditional.items,
-      new Date(conditional.dueDate).toLocaleDateString('pt-BR'),
+      formatBrazilianDate(conditional.dueDate),
       conditional.status === 'overdue' ? 'Atrasado' : 'Ativo'
     ])
 
@@ -210,7 +212,7 @@ export default function Dashboard() {
                         <p className="font-medium">{conditional.customerName}</p>
                         <p className="text-sm text-muted-foreground">{conditional.phone}</p>
                         <p className="text-xs text-muted-foreground">
-                          Vence em: {new Date(conditional.dueDate).toLocaleDateString('pt-BR')}
+                          Vence em: {formatBrazilianDate(conditional.dueDate)}
                         </p>
                       </div>
                       <div className="text-right">

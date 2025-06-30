@@ -1,4 +1,6 @@
 
+import { toBrazilTime, getBrazilDayRange } from './dateUtils'
+
 export type TimeFilterOption = 'today' | 'yesterday' | 'this-week' | 'this-month' | 'this-year' | 'custom'
 
 export interface DateRange {
@@ -10,77 +12,77 @@ export function getDateRangeFromPeriod(
   period: TimeFilterOption, 
   customDates?: DateRange
 ): DateRange {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  // Obter data atual no horário de Brasília
+  const nowBrazil = toBrazilTime(new Date())
+  const todayBrazil = new Date(nowBrazil.getFullYear(), nowBrazil.getMonth(), nowBrazil.getDate())
   
   switch (period) {
-    case 'today':
-      return {
-        from: today,
-        to: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
-      }
+    case 'today': {
+      const { start, end } = getBrazilDayRange(nowBrazil)
+      return { from: start, to: end }
+    }
     
-    case 'yesterday':
-      const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
-      return {
-        from: yesterday,
-        to: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1)
-      }
+    case 'yesterday': {
+      const yesterdayBrazil = new Date(todayBrazil)
+      yesterdayBrazil.setDate(todayBrazil.getDate() - 1)
+      const { start, end } = getBrazilDayRange(yesterdayBrazil)
+      return { from: start, to: end }
+    }
     
-    case 'this-week':
-      const startOfWeek = new Date(today)
-      const dayOfWeek = today.getDay()
+    case 'this-week': {
+      const startOfWeek = new Date(todayBrazil)
+      const dayOfWeek = todayBrazil.getDay()
       // Ajustar para segunda-feira ser o primeiro dia (0 = domingo, 1 = segunda)
       const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-      startOfWeek.setDate(today.getDate() + diff)
+      startOfWeek.setDate(todayBrazil.getDate() + diff)
+      startOfWeek.setHours(0, 0, 0, 0)
       
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(startOfWeek.getDate() + 6)
       endOfWeek.setHours(23, 59, 59, 999)
       
-      return {
-        from: startOfWeek,
-        to: endOfWeek
-      }
+      return { from: startOfWeek, to: endOfWeek }
+    }
     
-    case 'this-month':
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    case 'this-month': {
+      const startOfMonth = new Date(todayBrazil.getFullYear(), todayBrazil.getMonth(), 1)
+      startOfMonth.setHours(0, 0, 0, 0)
+      
+      const endOfMonth = new Date(todayBrazil.getFullYear(), todayBrazil.getMonth() + 1, 0)
       endOfMonth.setHours(23, 59, 59, 999)
       
-      return {
-        from: startOfMonth,
-        to: endOfMonth
-      }
+      return { from: startOfMonth, to: endOfMonth }
+    }
     
-    case 'this-year':
-      const startOfYear = new Date(today.getFullYear(), 0, 1)
-      const endOfYear = new Date(today.getFullYear(), 11, 31)
+    case 'this-year': {
+      const startOfYear = new Date(todayBrazil.getFullYear(), 0, 1)
+      startOfYear.setHours(0, 0, 0, 0)
+      
+      const endOfYear = new Date(todayBrazil.getFullYear(), 11, 31)
       endOfYear.setHours(23, 59, 59, 999)
       
-      return {
-        from: startOfYear,
-        to: endOfYear
-      }
+      return { from: startOfYear, to: endOfYear }
+    }
     
-    case 'custom':
+    case 'custom': {
       if (customDates) {
-        return {
-          from: new Date(customDates.from.getFullYear(), customDates.from.getMonth(), customDates.from.getDate()),
-          to: new Date(customDates.to.getFullYear(), customDates.to.getMonth(), customDates.to.getDate(), 23, 59, 59, 999)
-        }
+        const fromBrazil = new Date(customDates.from.getFullYear(), customDates.from.getMonth(), customDates.from.getDate())
+        fromBrazil.setHours(0, 0, 0, 0)
+        
+        const toBrazil = new Date(customDates.to.getFullYear(), customDates.to.getMonth(), customDates.to.getDate())
+        toBrazil.setHours(23, 59, 59, 999)
+        
+        return { from: fromBrazil, to: toBrazil }
       }
       // Fallback to today if no custom dates provided
-      return {
-        from: today,
-        to: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
-      }
+      const { start, end } = getBrazilDayRange(nowBrazil)
+      return { from: start, to: end }
+    }
     
-    default:
-      return {
-        from: today,
-        to: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1)
-      }
+    default: {
+      const { start, end } = getBrazilDayRange(nowBrazil)
+      return { from: start, to: end }
+    }
   }
 }
 

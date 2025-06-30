@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { TimeFilterOption, DateRange, getDateRangeFromPeriod } from '@/utils/dateFilters'
+import { toBrazilTime } from '@/utils/dateUtils'
 
 interface DynamicSalesChartOptions {
   period?: TimeFilterOption
@@ -74,14 +75,12 @@ function generateChartData(
   // Initialize all periods with zero values
   initializePeriods(dataMap, dateRange, grouping)
 
-  // Aggregate actual sales data with timezone conversion
+  // Aggregate actual sales data with proper timezone conversion
   orders.forEach(order => {
-    // Converter para timezone do Brasil
-    const orderDate = new Date(order.created_at)
-    const brasilOffset = -3 * 60 // UTC-3 em minutos
-    const localDate = new Date(orderDate.getTime() + brasilOffset * 60 * 1000)
+    // Converter para horário de Brasília usando date-fns-tz
+    const brazilDate = toBrazilTime(order.created_at)
     
-    const key = getGroupingKey(localDate, grouping)
+    const key = getGroupingKey(brazilDate, grouping)
     const currentValue = dataMap.get(key) || 0
     dataMap.set(key, currentValue + parseFloat(order.total_amount.toString()))
   })

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts'
 import { TrendingUp } from 'lucide-react'
+import { formatBrazilianDate, formatBrazilianDateShort, formatMonthYear } from '@/utils/dateUtils'
 
 const chartConfig = {
   total_sales: {
@@ -53,17 +54,14 @@ export function DynamicSalesChart({ data, grouping, isLoading = false }: Dynamic
         return value // Already in "HH:00" format
       
       case 'day':
-        const date = new Date(value)
-        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        return formatBrazilianDateShort(value)
       
       case 'week':
         const [startDate] = value.split(' to ')
-        const start = new Date(startDate)
-        return start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        return formatBrazilianDateShort(startDate)
       
       case 'month':
-        const [year, month] = value.split('-')
-        return `${month}/${year.substring(2)}`
+        return formatMonthYear(value)
       
       default:
         return value
@@ -93,16 +91,14 @@ export function DynamicSalesChart({ data, grouping, isLoading = false }: Dynamic
         return `${label}`
       
       case 'day':
-        return new Date(label).toLocaleDateString('pt-BR')
+        return formatBrazilianDate(label)
       
       case 'week':
         const [start, end] = label.split(' to ')
-        return `${new Date(start).toLocaleDateString('pt-BR')} - ${new Date(end).toLocaleDateString('pt-BR')}`
+        return `${formatBrazilianDate(start)} - ${formatBrazilianDate(end)}`
       
       case 'month':
-        const [year, month] = label.split('-')
-        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-        return `${monthNames[parseInt(month) - 1]} ${year}`
+        return formatMonthYear(label)
       
       default:
         return label
@@ -119,7 +115,7 @@ export function DynamicSalesChart({ data, grouping, isLoading = false }: Dynamic
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
             Carregando dados...
           </div>
         </CardContent>
@@ -140,12 +136,12 @@ export function DynamicSalesChart({ data, grouping, isLoading = false }: Dynamic
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
             Nenhum dado encontrado para o período selecionado
           </div>
         ) : (
           <ChartContainer config={chartConfig}>
-            <AreaChart data={data} height={250}>
+            <AreaChart data={data} height={200}>
               <XAxis
                 dataKey="label"
                 tickLine={false}
