@@ -97,12 +97,10 @@ export function ProductViewDialog({ product, open, onOpenChange }: ProductViewDi
                 <p className="text-sm text-muted-foreground">SKU</p>
                 <p className="font-medium">{product.sku}</p>
               </div>
-              {product.product_code && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Código do Produto</p>
-                  <p className="font-medium">{product.product_code}</p>
-                </div>
-              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Código do Produto</p>
+                <p className="font-medium">{product.product_code || '—'}</p>
+              </div>
               <div>
                 <p className="text-sm text-muted-foreground">Categoria</p>
                 <p className="font-medium">{product.category}</p>
