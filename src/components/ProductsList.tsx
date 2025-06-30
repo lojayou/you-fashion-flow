@@ -2,15 +2,18 @@
 import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingCart, Package, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ShoppingCart, Package, Loader2, Bug } from 'lucide-react'
 import { useProductsWithDetails, ProductWithDetails } from '@/hooks/useProductsWithDetails'
 import { useCart } from '@/contexts/CartContext'
 import { ProductSearch } from './ProductSearch'
 import { ProductsTable } from './ProductsTable'
+import { ProductsDebugPanel } from './ProductsDebugPanel'
 
 export function ProductsList() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
   const { addToCart, getCartItemCount } = useCart()
 
   const { data: products = [], isLoading, error } = useProductsWithDetails()
@@ -58,9 +61,26 @@ export function ProductsList() {
 
   if (error) {
     return (
-      <div className="text-center text-red-500 p-8">
-        <p>Erro ao carregar produtos</p>
-        <p className="text-sm">{error.message}</p>
+      <div className="space-y-6">
+        <div className="text-center text-red-500 p-8">
+          <p className="text-lg font-semibold">Erro ao carregar produtos</p>
+          <p className="text-sm mt-2">{error.message}</p>
+          <Button
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            variant="outline"
+            size="sm"
+            className="mt-4"
+          >
+            <Bug className="h-4 w-4 mr-2" />
+            {showDebugPanel ? 'Ocultar' : 'Mostrar'} Diagnóstico
+          </Button>
+        </div>
+        
+        {showDebugPanel && (
+          <div className="flex justify-center">
+            <ProductsDebugPanel />
+          </div>
+        )}
       </div>
     )
   }
@@ -73,13 +93,29 @@ export function ProductsList() {
             <h1 className="text-3xl font-bold text-foreground">Lista de Produtos</h1>
             <p className="text-muted-foreground">Selecione produtos para adicionar ao carrinho</p>
           </div>
-          {cartItemCount > 0 && (
-            <Badge variant="secondary" className="flex items-center space-x-1">
-              <ShoppingCart className="h-4 w-4" />
-              <span>{cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'}</span>
-            </Badge>
-          )}
+          <div className="flex items-center space-x-4">
+            {cartItemCount > 0 && (
+              <Badge variant="secondary" className="flex items-center space-x-1">
+                <ShoppingCart className="h-4 w-4" />
+                <span>{cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'}</span>
+              </Badge>
+            )}
+            <Button
+              onClick={() => setShowDebugPanel(!showDebugPanel)}
+              variant="outline"
+              size="sm"
+            >
+              <Bug className="h-4 w-4 mr-2" />
+              Debug
+            </Button>
+          </div>
         </div>
+
+        {showDebugPanel && (
+          <div className="mb-6">
+            <ProductsDebugPanel />
+          </div>
+        )}
 
         <ProductSearch
           searchTerm={searchTerm}

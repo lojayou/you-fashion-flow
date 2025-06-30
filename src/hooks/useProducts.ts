@@ -20,18 +20,28 @@ export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
     queryFn: async (): Promise<Product[]> => {
-      console.log('🔍 Buscando produtos ativos - Hook atualizado para nova estrutura...')
+      console.log('🔍 Iniciando busca de produtos - Nova estrutura implementada')
       
       try {
-        // 1. Verificar autenticação atual
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        console.log('👤 Usuário autenticado:', user?.id || 'Não autenticado')
-        if (authError) {
-          console.error('❌ Erro de autenticação:', authError)
-        }
+        // 1. Testar conectividade básica com Supabase
+        console.log('🔌 Testando conectividade com Supabase...')
+        const { data: testConnection } = await supabase
+          .from('products')
+          .select('count')
+          .limit(1)
+        
+        console.log('✅ Conectividade OK:', testConnection !== null)
 
-        // 2. Buscar produtos usando campos diretos de categoria e marca
-        console.log('📋 Executando query com campos diretos...')
+        // 2. Verificar se o usuário está autenticado
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        console.log('👤 Status de autenticação:', {
+          authenticated: !!user,
+          userId: user?.id || 'N/A',
+          error: authError?.message || 'N/A'
+        })
+
+        // 3. Executar query principal com nova estrutura
+        console.log('📋 Executando query principal...')
         const { data: products, error } = await supabase
           .from('products')
           .select(`
@@ -50,83 +60,81 @@ export const useProducts = () => {
           .eq('status', 'active')
           .order('name')
 
-        console.log('📊 Query executada:')
-        console.log('  - Filtro: status = "active"')
-        console.log('  - Sem filtro de stock (permite estoque 0)')
-        console.log('  - Campos diretos: category, brand (sem relacionamento)')
-        console.log('  - Ordenação: por nome')
+        console.log('📊 Resultado da query:', {
+          sucesso: !error,
+          totalProdutos: products?.length || 0,
+          erro: error?.message || 'N/A'
+        })
 
         if (error) {
-          console.error('❌ Erro na query:', error)
-          console.error('❌ Detalhes do erro:', {
+          console.error('❌ Erro detalhado na query:', {
             message: error.message,
-            code: error.code,
             details: error.details,
-            hint: error.hint
+            hint: error.hint,
+            code: error.code
           })
-          
-          // Verificar se é problema de RLS
+
+          // Verificar se é erro de RLS
           if (error.code === 'PGRST116' || error.message.includes('RLS')) {
-            console.log('🔐 Possível problema de RLS detectado')
-            console.log('💡 Sugestão: Verificar se a policy SELECT permite acesso aos produtos')
+            console.log('🔐 Erro de RLS detectado - Tentando query de diagnóstico...')
+            
+            // Tentar query mais simples para diagnóstico
+            const { data: simpleTest, error: simpleError } = await supabase
+              .from('products')
+              .select('id, name')
+              .limit(1)
+
+            if (simpleError) {
+              console.error('❌ Erro na query simples também:', simpleError)
+            } else {
+              console.log('✅ Query simples funcionou:', simpleTest?.length || 0)
+            }
           }
           
           throw error
         }
 
-        console.log('✅ Produtos encontrados:', products?.length || 0)
-        
+        // 4. Processar e analisar os dados retornados
         if (products && products.length > 0) {
-          console.log('📋 Lista de produtos:')
+          console.log('📋 Produtos encontrados:')
           products.forEach((product, index) => {
-            console.log(`  ${index + 1}. ${product.name}`)
-            console.log(`      ID: ${product.id}`)
-            console.log(`      SKU: ${product.sku}`)
-            console.log(`      Status: ${product.status}`)
-            console.log(`      Estoque: ${product.stock}`)
-            console.log(`      Preço: R$ ${product.sale_price}`)
-            console.log(`      Categoria: ${product.category || 'Não definida'}`)
-            console.log(`      Marca: ${product.brand || 'Não definida'}`)
-            console.log(`      ---`)
+            console.log(`${index + 1}. ${product.name} (${product.sku})`)
+            console.log(`   Categoria: ${product.category || 'Não definida'}`)
+            console.log(`   Marca: ${product.brand || 'Não definida'}`)
+            console.log(`   Estoque: ${product.stock}`)
+            console.log(`   Status: ${product.status}`)
           })
 
-          // Análise dos dados
-          const withStock = products.filter(p => p.stock > 0)
-          const withoutStock = products.filter(p => p.stock === 0)
-          const withCategory = products.filter(p => p.category)
-          const withoutCategory = products.filter(p => !p.category)
-          const withBrand = products.filter(p => p.brand)
-          const withoutBrand = products.filter(p => !p.brand)
+          // Estatísticas
+          const stats = {
+            total: products.length,
+            comEstoque: products.filter(p => p.stock > 0).length,
+            semEstoque: products.filter(p => p.stock === 0).length,
+            comCategoria: products.filter(p => p.category).length,
+            comMarca: products.filter(p => p.brand).length
+          }
 
-          console.log('📊 Análise dos produtos encontrados:')
-          console.log(`  - Com estoque > 0: ${withStock.length}`)
-          console.log(`  - Com estoque = 0: ${withoutStock.length}`)
-          console.log(`  - Com categoria: ${withCategory.length}`)
-          console.log(`  - Sem categoria: ${withoutCategory.length}`)
-          console.log(`  - Com marca: ${withBrand.length}`)
-          console.log(`  - Sem marca: ${withoutBrand.length}`)
+          console.log('📊 Estatísticas dos produtos:', stats)
         } else {
-          console.log('⚠️ Nenhum produto ativo encontrado!')
+          console.log('⚠️ Nenhum produto ativo encontrado')
           
-          // Testar query mais simples para diagnóstico
-          console.log('🔍 Testando query sem filtros para diagnóstico...')
+          // Diagnóstico adicional
+          console.log('🔍 Executando diagnóstico adicional...')
+          
           const { data: allProducts, error: allError } = await supabase
             .from('products')
             .select('id, name, status')
-            .limit(5)
+            .limit(10)
 
           if (allError) {
-            console.error('❌ Erro na query de diagnóstico:', allError)
-            console.log('🔐 Possível problema de RLS ou permissões')
+            console.error('❌ Erro no diagnóstico:', allError)
           } else {
-            console.log('📋 Produtos encontrados na query de diagnóstico:', allProducts?.length || 0)
+            console.log('📋 Todos os produtos encontrados:', allProducts?.length || 0)
             if (allProducts && allProducts.length > 0) {
-              console.log('📊 Status dos produtos na base:')
+              console.log('Status dos produtos:')
               allProducts.forEach(p => {
-                console.log(`  - ${p.name}: status = "${p.status}"`)
+                console.log(`- ${p.name}: ${p.status}`)
               })
-            } else {
-              console.log('📭 Tabela products está vazia ou RLS está bloqueando acesso')
             }
           }
         }
@@ -135,13 +143,19 @@ export const useProducts = () => {
         
       } catch (error) {
         console.error('💥 Erro geral na busca de produtos:', error)
-        console.error('💥 Stack trace:', error instanceof Error ? error.stack : 'N/A')
+        if (error instanceof Error) {
+          console.error('💥 Stack trace:', error.stack)
+        }
         throw error
       }
     },
-    // Cache configurado para debug
-    staleTime: 30000, // 30 segundos
-    gcTime: 60000, // 1 minuto
-    retry: 1
+    // Configurações de cache otimizadas para debug
+    staleTime: 0, // Sempre buscar dados frescos durante debug
+    gcTime: 30000, // 30 segundos
+    retry: (failureCount, error) => {
+      console.log(`🔄 Tentativa ${failureCount + 1} falhou:`, error)
+      return failureCount < 2 // Tentar até 3 vezes
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000)
   })
 }
