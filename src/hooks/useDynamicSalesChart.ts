@@ -38,13 +38,13 @@ export function useDynamicSalesChart(options: DynamicSalesChartOptions = {}) {
       console.log('Fetching sales data with grouping:', grouping)
       console.log('Date range:', dateRange)
       
-      // Buscar pedidos com status correto (usando apenas status válidos do enum)
+      // Buscar pedidos com status correto (usando status válidos que indicam vendas concluídas)
       const { data: orders, error } = await supabase
         .from('orders')
         .select('total_amount, created_at')
         .gte('created_at', dateRange.from.toISOString())
         .lte('created_at', dateRange.to.toISOString())
-        .in('status', ['delivered', 'shipped']) // Apenas status válidos que indicam vendas concluídas
+        .in('status', ['delivered', 'shipped', 'confirmed']) // Incluindo "confirmed" como status de venda
       
       if (error) {
         console.error('Error fetching orders:', error)
