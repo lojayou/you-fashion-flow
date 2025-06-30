@@ -1,14 +1,49 @@
 
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { AutocompleteInput } from '@/components/AutocompleteInput'
-import { useProductsWithDetails } from '@/hooks/useProductsWithDetails'
-import { supabase } from '@/integrations/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/integrations/supabase/client'
+
+const productSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório'),
+  sku: z.string().min(1, 'SKU é obrigatório'),
+  description: z.string().optional(),
+  category: z.string().min(1, 'Categoria é obrigatória'),
+  brand: z.string().min(1, 'Marca é obrigatória'),
+  salePrice: z.number().min(0.01, 'Preço deve ser maior que zero'),
+  costPrice: z.number().optional(),
+  stock: z.number().min(0, 'Estoque não pode ser negativo'),
+  minStock: z.number().min(0, 'Estoque mínimo não pode ser negativo'),
+  size: z.string().optional(),
+  color: z.string().optional(),
+  status: z.enum(['active', 'inactive']),
+  featured: z.boolean(),
+})
+
+type ProductFormData = z.infer<typeof productSchema>
 
 interface ProductCreateDialogProps {
   open: boolean
@@ -16,54 +51,48 @@ interface ProductCreateDialogProps {
   onProductCreated: () => void
 }
 
-export function ProductCreateDialog({
-  open,
-  onOpenChange,
-  onProductCreated
-}: ProductCreateDialogProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    description: '',
-    category: '',
-    brand: '',
-    color: '',
-    size: '',
-    sale_price: '',
-    stock: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: ProductCreateDialogProps) {
+  const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
-  const { data: existingProducts = [] } = useProductsWithDetails()
 
-  // Extract unique values for autocomplete
-  const uniqueCategories = [...new Set(existingProducts.map(p => p.category).filter(Boolean))]
-  const uniqueBrands = [...new Set(existingProducts.map(p => p.brand).filter(Boolean))]
-  const uniqueColors = [...new Set(existingProducts.map(p => p.color).filter(Boolean))]
-  const uniqueSizes = [...new Set(existingProducts.map(p => p.size).filter(Boolean))]
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: '',
+      sku: '',
+      description: '',
+      category: '',
+      brand: '',
+      salePrice: 0,
+      costPrice: 0,
+      stock: 0,
+      minStock: 5,
+      size: '',
+      color: '',
+      status: 'active',
+      featured: false,
+    },
+  })
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
+  const onSubmit = async (data: ProductFormData) => {
+    setIsLoading(true)
     try {
       const { error } = await supabase
         .from('products')
         .insert({
-          name: formData.name,
-          sku: formData.sku,
-          description: formData.description || null,
-          category: formData.category || null,
-          brand: formData.brand || null,
-          color: formData.color || null,
-          size: formData.size || null,
-          sale_price: parseFloat(formData.sale_price),
-          stock: parseInt(formData.stock),
-          status: 'active'
+          name: data.name,
+          sku: data.sku,
+          description: data.description,
+          category: data.category,
+          brand: data.brand,
+          sale_price: data.salePrice,
+          cost_price: data.costPrice,
+          stock: data.stock,
+          min_stock: data.minStock,
+          size: data.size,
+          color: data.color,
+          status: data.status,
+          featured: data.featured,
         })
 
       if (error) throw error
@@ -73,21 +102,9 @@ export function ProductCreateDialog({
         description: 'O produto foi criado com sucesso.',
       })
 
-      // Reset form
-      setFormData({
-        name: '',
-        sku: '',
-        description: '',
-        category: '',
-        brand: '',
-        color: '',
-        size: '',
-        sale_price: '',
-        stock: ''
-      })
-
       onProductCreated()
       onOpenChange(false)
+      form.reset()
     } catch (error) {
       console.error('Erro ao criar produto:', error)
       toast({
@@ -96,144 +113,271 @@ export function ProductCreateDialog({
         variant: 'destructive',
       })
     } finally {
-      setIsSubmitting(false)
+      setIsLoading(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Produto</DialogTitle>
+          <DialogTitle>Criar Novo Produto</DialogTitle>
+          <DialogDescription>
+            Preencha as informações do novo produto.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome do Produto *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder=""
-                required
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome do Produto</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="sku"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SKU</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sku">SKU *</Label>
-              <Input
-                id="sku"
-                value={formData.sku}
-                onChange={(e) => handleInputChange('sku', e.target.value)}
-                placeholder=""
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder=""
-              rows={3}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={3} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">Categoria</Label>
-              <AutocompleteInput
-                value={formData.category}
-                onChange={(value) => handleInputChange('category', value)}
-                placeholder=""
-                suggestions={uniqueCategories}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite a categoria (ex: Blusas, Calças, Vestidos)"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marca</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite a marca"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="brand">Marca</Label>
-              <AutocompleteInput
-                value={formData.brand}
-                onChange={(value) => handleInputChange('brand', value)}
-                placeholder=""
-                suggestions={uniqueBrands}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="salePrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço de Venda (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...field}
+                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="color">Cor</Label>
-              <AutocompleteInput
-                value={formData.color}
-                onChange={(value) => handleInputChange('color', value)}
-                placeholder=""
-                suggestions={uniqueColors}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="size">Tamanho</Label>
-              <AutocompleteInput
-                value={formData.size}
-                onChange={(value) => handleInputChange('size', value)}
-                placeholder=""
-                suggestions={uniqueSizes}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sale_price">Preço de Venda *</Label>
-              <Input
-                id="sale_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.sale_price}
-                onChange={(e) => handleInputChange('sale_price', e.target.value)}
-                placeholder=""
-                required
+              <FormField
+                control={form.control}
+                name="costPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço de Custo (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...field}
+                        onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="stock">Estoque *</Label>
-              <Input
-                id="stock"
-                type="number"
-                min="0"
-                value={formData.stock}
-                onChange={(e) => handleInputChange('stock', e.target.value)}
-                placeholder=""
-                required
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade em Estoque</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={e => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="minStock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estoque Mínimo</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={e => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-          </div>
 
-          <div className="flex justify-end space-x-4 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              className="bg-copper-500 hover:bg-copper-600"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Criando...' : 'Criar Produto'}
-            </Button>
-          </div>
-        </form>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="size"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tamanho</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite o tamanho (ex: P, M, G, 36, 38)"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cor</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite a cor (ex: Azul, Vermelho, Preto)"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="inactive">Inativo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="featured"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Produto Destaque</FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Marcar produto como destaque
+                      </p>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Criando...' : 'Criar Produto'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )
