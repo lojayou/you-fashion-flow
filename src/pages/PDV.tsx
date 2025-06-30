@@ -11,7 +11,6 @@ import { Switch } from '@/components/ui/switch'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
   ShoppingCart, 
   Plus, 
@@ -20,8 +19,7 @@ import {
   User, 
   Calculator,
   CreditCard,
-  Calendar as CalendarIcon,
-  Loader2
+  Calendar as CalendarIcon
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
@@ -29,15 +27,7 @@ import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CustomerSearch } from '@/components/CustomerSearch'
 import { supabase } from '@/integrations/supabase/client'
-
-interface CartItem {
-  id: string
-  name: string
-  size: string
-  color: string
-  price: number
-  quantity: number
-}
+import { useCart } from '@/contexts/CartContext'
 
 interface PaymentMethod {
   type: string
@@ -57,7 +47,7 @@ interface Customer {
 }
 
 export default function PDV() {
-  const [cart, setCart] = useState<CartItem[]>([])
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart()
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isConditional, setIsConditional] = useState(false)
   const [conditionalDate, setConditionalDate] = useState<Date>()
@@ -86,21 +76,6 @@ export default function PDV() {
     setAmountPaid(formattedValue)
   }
 
-  const updateQuantity = (itemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(itemId)
-      return
-    }
-
-    setCart(cart.map(item => 
-      item.id === itemId ? { ...item, quantity } : item
-    ))
-  }
-
-  const removeFromCart = (itemId: string) => {
-    setCart(cart.filter(item => item.id !== itemId))
-  }
-
   const addPaymentMethod = () => {
     if (customPaymentType && amountPaid > 0) {
       const newPayment: PaymentMethod = {
@@ -127,7 +102,7 @@ export default function PDV() {
     return labels[type] || type
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const subtotal = cart.reduce((sum, item) => sum + (item.sale_price * item.quantity), 0)
   const discountAmount = subtotal * (discount / 100)
   const total = subtotal - discountAmount
   const totalPaid = paymentMethod === 'custom' 
@@ -208,9 +183,9 @@ export default function PDV() {
           conditional_id: conditional.id,
           product_name: item.name,
           quantity: item.quantity,
-          unit_price: item.price,
-          size: item.size,
-          color: item.color
+          unit_price: item.sale_price,
+          size: item.size || '',
+          color: item.color || ''
         }))
 
         const { error: itemsError } = await supabase
@@ -248,10 +223,10 @@ export default function PDV() {
           order_id: order.id,
           product_name: item.name,
           quantity: item.quantity,
-          unit_price: item.price,
-          total_price: item.price * item.quantity,
-          size: item.size,
-          color: item.color
+          unit_price: item.sale_price,
+          total_price: item.sale_price * item.quantity,
+          size: item.size || '',
+          color: item.color || ''
         }))
 
         const { error: itemsError } = await supabase
@@ -269,7 +244,7 @@ export default function PDV() {
       })
 
       // Reset form
-      setCart([])
+      clearCart()
       setSelectedCustomer(null)
       setIsConditional(false)
       setConditionalDate(undefined)
@@ -309,7 +284,8 @@ export default function PDV() {
           <CardContent>
             {cart.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                Nenhum item no carrinho
+                Nenhum item no carrinho. <br />
+                <span className="text-sm">Acesse a página de produtos para adicionar itens.</span>
               </p>
             ) : (
               <div className="space-y-3">
@@ -321,7 +297,7 @@ export default function PDV() {
                     <div className="flex-1">
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {item.color} • {item.size} • R$ {item.price.toFixed(2)}
+                        {item.sku} • R$ {item.sale_price.toFixed(2)}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -337,6 +313,7 @@ export default function PDV() {
                         size="sm"
                         variant="outline"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        disabled={item.quantity >= item.stock}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>

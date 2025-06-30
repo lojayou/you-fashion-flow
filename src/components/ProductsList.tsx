@@ -8,18 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ShoppingCart, Search, Package, Loader2 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
 import { useProductsWithDetails } from '@/hooks/useProductsWithDetails'
+import { useCart } from '@/contexts/CartContext'
 
-interface ProductsListProps {
-  onAddToCart: (productId: string, productName: string, price: number, stock: number) => void
-  cartItemCount?: number
-}
-
-export function ProductsList({ onAddToCart, cartItemCount = 0 }: ProductsListProps) {
+export function ProductsList() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
-  const { toast } = useToast()
+  const { addToCart, getCartItemCount } = useCart()
 
   const { data: products = [], isLoading, error } = useProductsWithDetails()
 
@@ -43,12 +38,17 @@ export function ProductsList({ onAddToCart, cartItemCount = 0 }: ProductsListPro
   }, [products, searchTerm, categoryFilter])
 
   const handleAddToCart = (product: any) => {
-    onAddToCart(product.id, product.name, product.sale_price, product.stock)
-    toast({
-      title: 'Produto adicionado',
-      description: `${product.name} foi adicionado ao carrinho`,
+    addToCart({
+      id: `${product.id}-${Date.now()}`,
+      product_id: product.id,
+      name: product.name,
+      sku: product.sku,
+      sale_price: product.sale_price,
+      stock: product.stock
     })
   }
+
+  const cartItemCount = getCartItemCount()
 
   if (isLoading) {
     return (
