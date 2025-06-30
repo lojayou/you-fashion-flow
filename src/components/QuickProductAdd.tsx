@@ -16,11 +16,12 @@ export function QuickProductAdd() {
   const { addToCart } = useCart()
   const { toast } = useToast()
 
-  // Filter products based on search term
+  // Filter products based on search term - incluindo busca por código do produto
   const filteredProducts = searchTerm 
     ? products.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+        product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.product_code && product.product_code.toLowerCase().includes(searchTerm.toLowerCase()))
       ).slice(0, 5) // Show only top 5 results when searching
     : products.slice(0, 10) // Show first 10 products when not searching
 
@@ -55,7 +56,7 @@ export function QuickProductAdd() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome ou SKU..."
+            placeholder="Buscar por nome, SKU ou código..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -106,6 +107,11 @@ export function QuickProductAdd() {
                       <p className="text-xs text-muted-foreground">
                         {product.sku} • R$ {product.sale_price.toFixed(2)}
                       </p>
+                      {product.product_code && (
+                        <p className="text-xs text-muted-foreground">
+                          Código: {product.product_code}
+                        </p>
+                      )}
                       <div className="flex items-center space-x-2 mt-1">
                         {product.category && (
                           <Badge variant="outline" className="text-xs">

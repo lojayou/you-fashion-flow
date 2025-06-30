@@ -13,6 +13,7 @@ interface Product {
   id: string
   name: string
   sku: string
+  product_code?: string | null
   category: string
   brand: string
   description: string
@@ -20,12 +21,14 @@ interface Product {
   costPrice?: number
   stock: number
   minStock: number
-  sizes: string[]
-  colors: string[]
+  size: string
+  color: string
   status: 'active' | 'inactive'
   featured: boolean
   createdAt: string
   createdBy: string
+  sizes: string[]
+  colors: string[]
 }
 
 interface ProductViewDialogProps {
@@ -94,6 +97,12 @@ export function ProductViewDialog({ product, open, onOpenChange }: ProductViewDi
                 <p className="text-sm text-muted-foreground">SKU</p>
                 <p className="font-medium">{product.sku}</p>
               </div>
+              {product.product_code && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Código do Produto</p>
+                  <p className="font-medium">{product.product_code}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Categoria</p>
                 <p className="font-medium">{product.category}</p>
@@ -171,24 +180,20 @@ export function ProductViewDialog({ product, open, onOpenChange }: ProductViewDi
             <h3 className="text-lg font-semibold mb-3">Variações do Produto</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Tamanhos Disponíveis</p>
+                <p className="text-sm text-muted-foreground mb-2">Tamanho</p>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.length > 0 ? (
-                    product.sizes.map((size, index) => (
-                      <Badge key={index} variant="outline">{size}</Badge>
-                    ))
+                  {product.size ? (
+                    <Badge variant="outline">{product.size}</Badge>
                   ) : (
                     <p className="text-muted-foreground text-sm">Nenhum tamanho cadastrado</p>
                   )}
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Cores Disponíveis</p>
+                <p className="text-sm text-muted-foreground mb-2">Cor</p>
                 <div className="flex flex-wrap gap-2">
-                  {product.colors.length > 0 ? (
-                    product.colors.map((color, index) => (
-                      <Badge key={index} variant="outline">{color}</Badge>
-                    ))
+                  {product.color ? (
+                    <Badge variant="outline">{product.color}</Badge>
                   ) : (
                     <p className="text-muted-foreground text-sm">Nenhuma cor cadastrada</p>
                   )}

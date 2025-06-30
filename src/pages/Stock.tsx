@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -41,6 +40,8 @@ interface Product {
   featured: boolean
   createdAt: string
   createdBy: string
+  sizes: string[]
+  colors: string[]
 }
 
 export default function Stock() {
@@ -78,7 +79,9 @@ export default function Stock() {
     status: 'active' as const,
     featured: false,
     createdAt: new Date().toISOString(),
-    createdBy: 'Admin'
+    createdBy: 'Admin',
+    sizes: product.size ? [product.size] : [],
+    colors: product.color ? [product.color] : []
   }))
 
   const categories = [...new Set(products.filter(p => p.category).map(p => p.category!))]

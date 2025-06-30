@@ -54,6 +54,9 @@ interface ProductCreateDialogProps {
   onProductCreated: () => void
 }
 
+// Opções pré-definidas de tamanho
+const SIZE_OPTIONS = ['P', 'M', 'G', 'GG']
+
 export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: ProductCreateDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [suggestions, setSuggestions] = useState({
@@ -96,10 +99,13 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
 
         const categories = [...new Set(products?.filter(p => p.category).map(p => p.category) || [])]
         const brands = [...new Set(products?.filter(p => p.brand).map(p => p.brand) || [])]
-        const sizes = [...new Set(products?.filter(p => p.size).map(p => p.size) || [])]
+        const existingSizes = [...new Set(products?.filter(p => p.size).map(p => p.size) || [])]
         const colors = [...new Set(products?.filter(p => p.color).map(p => p.color) || [])]
 
-        setSuggestions({ categories, brands, sizes, colors })
+        // Combinar tamanhos pré-definidos com os existentes
+        const allSizes = [...new Set([...SIZE_OPTIONS, ...existingSizes])]
+
+        setSuggestions({ categories, brands, sizes: allSizes, colors })
       } catch (error) {
         console.error('Erro ao buscar sugestões:', error)
       }
@@ -348,12 +354,18 @@ export function ProductCreateDialog({ open, onOpenChange, onProductCreated }: Pr
                   <FormItem>
                     <FormLabel>Tamanho</FormLabel>
                     <FormControl>
-                      <AutocompleteInput
-                        value={field.value || ''}
-                        onChange={field.onChange}
-                        suggestions={suggestions.sizes}
-                        placeholder="Digite ou selecione um tamanho"
-                      />
+                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tamanho" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suggestions.sizes.map((size) => (
+                            <SelectItem key={size} value={size}>
+                              {size}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
