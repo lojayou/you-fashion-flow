@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { supabase } from '@/integrations/supabase/client'
 
 export interface User {
   id: string
@@ -29,40 +30,50 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Mock admin user for demonstration
-const mockAdminUser: User = {
-  id: '1',
-  name: 'Administrador',
-  email: 'admin@youfashion.com',
-  phone: '(11) 99999-9999',
-  status: 'active',
-  role: 'Administrador',
-  permissions: {
-    dashboard: true,
-    pdv: true,
-    orders: true,
-    stock: true,
-    users: true
-  },
-  createdAt: new Date().toISOString()
-}
-
-// New admin user - Geovanny
-const guedesAdminUser: User = {
-  id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-  name: 'Geovanny Guedes',
-  email: 'guedesgeovanny@gmail.com',
-  phone: '(11) 99999-0000',
-  status: 'active',
-  role: 'Administrador',
-  permissions: {
-    dashboard: true,
-    pdv: true,
-    orders: true,
-    stock: true,
-    users: true
-  },
-  createdAt: new Date().toISOString()
+// Helper function to map role to permissions
+const getRolePermissions = (role: string) => {
+  switch (role) {
+    case 'admin':
+      return {
+        dashboard: true,
+        pdv: true,
+        orders: true,
+        stock: true,
+        users: true
+      }
+    case 'manager':
+      return {
+        dashboard: true,
+        pdv: true,
+        orders: true,
+        stock: true,
+        users: false
+      }
+    case 'seller':
+      return {
+        dashboard: true,
+        pdv: true,
+        orders: true,
+        stock: false,
+        users: false
+      }
+    case 'cashier':
+      return {
+        dashboard: true,
+        pdv: true,
+        orders: false,
+        stock: false,
+        users: false
+      }
+    default:
+      return {
+        dashboard: false,
+        pdv: false,
+        orders: false,
+        stock: false,
+        users: false
+      }
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -80,22 +91,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Mock authentication - check for both admin users
-      if (email === 'admin@youfashion.com' && password === 'admin123') {
-        setUser(mockAdminUser)
-        setIsAuthenticated(true)
-        localStorage.setItem('user', JSON.stringify(mockAdminUser))
-        return true
-      }
+      console.log('Attempting login with:', { email })
       
-      if (email === 'guedesgeovanny@gmail.com' && password === 'You1234') {
-        setUser(guedesAdminUser)
-        setIsAuthenticated(true)
-        localStorage.setItem('user', JSON.stringify(guedesAdminUser))
-        return true
+      // Query the profiles table to find user with matching email and password
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .eq('password', password)
+        .eq('status', 'active')
+        .single()
+
+      if (error) {
+        console.error('Login error:', error)
+        return false
       }
+
+      if (!profile) {
+        console.log('No matching user found')
+        return false
+      }
+
+      console.log('User found:', profile)
+
+      // Convert profile to User format
+      const userData: User = {
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone || '',
+        status: profile.status as 'active' | 'blocked',
+        role: profile.role || 'seller',
+        permissions: getRolePermissions(profile.role || 'seller'),
+        createdAt: profile.created_at || new Date().toISOString(),
+        createdBy: profile.created_by || undefined
+      }
+
+      setUser(userData)
+      setIsAuthenticated(true)
+      localStorage.setItem('user', JSON.stringify(userData))
       
-      return false
+      console.log('Login successful for user:', userData.name)
+      return true
     } catch (error) {
       console.error('Login error:', error)
       return false

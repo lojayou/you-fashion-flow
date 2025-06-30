@@ -139,24 +139,13 @@ export default function Login() {
               </Button>
             </form>
 
-            {/* Demo credentials */}
-            <div className="mt-6 space-y-3">
+            {/* Info about database login */}
+            <div className="mt-6">
               <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground text-center mb-2">
-                  <strong>Credenciais de demonstração:</strong>
+                <p className="text-sm text-muted-foreground text-center">
+                  <strong>Use as credenciais cadastradas no sistema</strong><br />
+                  Para fazer login, utilize o email e senha de um usuário cadastrado na página de Usuários.
                 </p>
-                <div className="space-y-2">
-                  <div className="text-xs text-muted-foreground text-center">
-                    <strong>Admin Padrão:</strong><br />
-                    Email: admin@youfashion.com<br />
-                    Senha: admin123
-                  </div>
-                  <div className="text-xs text-muted-foreground text-center border-t pt-2">
-                    <strong>Admin Geovanny:</strong><br />
-                    Email: guedesgeovanny@gmail.com<br />
-                    Senha: You1234
-                  </div>
-                </div>
               </div>
             </div>
           </CardContent>
