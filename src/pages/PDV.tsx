@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -106,6 +105,23 @@ export default function PDV() {
       console.log('  - Hook useProducts retornando array vazio')
     }
   }, [products, isLoadingProducts, productsError])
+
+  // Helper function to format currency input
+  const formatCurrency = (value: string) => {
+    // Remove non-numeric characters except dots and commas
+    const numericValue = value.replace(/[^\d,]/g, '')
+    
+    // Convert to number for formatting
+    const number = parseFloat(numericValue.replace(',', '.')) || 0
+    
+    return number
+  }
+
+  const handleAmountPaidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value
+    const formattedValue = formatCurrency(inputValue)
+    setAmountPaid(formattedValue)
+  }
 
   const addToCart = (productId: string, color: string, size: string) => {
     console.log('🛒 Tentativa de adicionar ao carrinho:', { productId, color, size })
@@ -656,7 +672,7 @@ export default function PDV() {
                           <Input
                             type="number"
                             value={amountPaid}
-                            onChange={(e) => setAmountPaid(Number(e.target.value))}
+                            onChange={handleAmountPaidChange}
                             step="0.01"
                             placeholder="0,00"
                           />
@@ -707,16 +723,20 @@ export default function PDV() {
                         max="100"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="amountPaid">Valor Pago</Label>
-                      <Input
-                        id="amountPaid"
-                        type="number"
-                        value={amountPaid}
-                        onChange={(e) => setAmountPaid(Number(e.target.value))}
-                        step="0.01"
-                      />
-                    </div>
+                    {/* Show "Valor Pago" only for money payment */}
+                    {paymentMethod === 'money' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="amountPaid">Valor Pago</Label>
+                        <Input
+                          id="amountPaid"
+                          type="number"
+                          value={amountPaid}
+                          onChange={handleAmountPaidChange}
+                          step="0.01"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </>
