@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,6 +25,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { CustomerSearch } from '@/components/CustomerSearch'
+import { QuickProductAdd } from '@/components/QuickProductAdd'
 import { supabase } from '@/integrations/supabase/client'
 import { useCart } from '@/contexts/CartContext'
 
@@ -272,7 +272,10 @@ export default function PDV() {
         <p className="text-muted-foreground">Sistema de vendas e condicionais</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Quick Product Add */}
+        <QuickProductAdd />
+
         {/* Cart */}
         <Card>
           <CardHeader>
@@ -285,7 +288,7 @@ export default function PDV() {
             {cart.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 Nenhum item no carrinho. <br />
-                <span className="text-sm">Acesse a página de produtos para adicionar itens.</span>
+                <span className="text-sm">Use o campo de busca acima para adicionar produtos.</span>
               </p>
             ) : (
               <div className="space-y-3">
