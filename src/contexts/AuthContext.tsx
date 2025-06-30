@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
 export interface User {
@@ -46,6 +47,24 @@ const mockAdminUser: User = {
   createdAt: new Date().toISOString()
 }
 
+// New admin user - Geovanny
+const guedesAdminUser: User = {
+  id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  name: 'Geovanny Guedes',
+  email: 'guedesgeovanny@gmail.com',
+  phone: '(11) 99999-0000',
+  status: 'active',
+  role: 'Administrador',
+  permissions: {
+    dashboard: true,
+    pdv: true,
+    orders: true,
+    stock: true,
+    users: true
+  },
+  createdAt: new Date().toISOString()
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -61,13 +80,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Mock authentication - in real app, this would be an API call
+      // Mock authentication - check for both admin users
       if (email === 'admin@youfashion.com' && password === 'admin123') {
         setUser(mockAdminUser)
         setIsAuthenticated(true)
         localStorage.setItem('user', JSON.stringify(mockAdminUser))
         return true
       }
+      
+      if (email === 'guedesgeovanny@gmail.com' && password === 'You1234') {
+        setUser(guedesAdminUser)
+        setIsAuthenticated(true)
+        localStorage.setItem('user', JSON.stringify(guedesAdminUser))
+        return true
+      }
+      
       return false
     } catch (error) {
       console.error('Login error:', error)

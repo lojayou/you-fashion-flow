@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -139,14 +140,24 @@ export default function Login() {
             </form>
 
             {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground text-center mb-2">
-                <strong>Credenciais de demonstração:</strong>
-              </p>
-              <p className="text-xs text-muted-foreground text-center">
-                Email: admin@youfashion.com<br />
-                Senha: admin123
-              </p>
+            <div className="mt-6 space-y-3">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground text-center mb-2">
+                  <strong>Credenciais de demonstração:</strong>
+                </p>
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground text-center">
+                    <strong>Admin Padrão:</strong><br />
+                    Email: admin@youfashion.com<br />
+                    Senha: admin123
+                  </div>
+                  <div className="text-xs text-muted-foreground text-center border-t pt-2">
+                    <strong>Admin Geovanny:</strong><br />
+                    Email: guedesgeovanny@gmail.com<br />
+                    Senha: You1234
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
