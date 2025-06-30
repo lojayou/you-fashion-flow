@@ -72,9 +72,6 @@ interface ProductEditDialogProps {
   onProductUpdated: () => void
 }
 
-const categories = ['Blusas', 'Calças', 'Vestidos', 'Saias', 'Blazers']
-const brands = ['Fashion Style', 'Denim Co', 'Elegance', 'Executive', 'Casual Wear']
-
 export function ProductEditDialog({ product, open, onOpenChange, onProductUpdated }: ProductEditDialogProps) {
   const [sizes, setSizes] = useState<string[]>([])
   const [colors, setColors] = useState<string[]>([])
@@ -239,18 +236,12 @@ export function ProductEditDialog({ product, open, onOpenChange, onProductUpdate
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Categoria</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma categoria" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category} value={category}>{category}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite a categoria (ex: Blusas, Calças, Vestidos)"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -262,18 +253,12 @@ export function ProductEditDialog({ product, open, onOpenChange, onProductUpdate
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Marca</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma marca" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {brands.map(brand => (
-                          <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="Digite a marca"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

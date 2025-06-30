@@ -33,8 +33,8 @@ export const useProductsWithDetails = () => {
         console.log('📊 Total de produtos ativos na tabela:', productsCount)
       }
 
-      // Agora vamos buscar os produtos com relacionamentos usando !left para left joins
-      console.log('🔍 Buscando produtos com detalhes de categoria e marca...')
+      // Buscar produtos com campos diretos de categoria e marca
+      console.log('🔍 Buscando produtos com categoria e marca diretas...')
       
       const { data, error } = await supabase
         .from('products')
@@ -47,10 +47,8 @@ export const useProductsWithDetails = () => {
           colors,
           sizes,
           description,
-          category_id,
-          brand_id,
-          categories!left(name),
-          brands!left(name)
+          category,
+          brand
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -73,10 +71,8 @@ export const useProductsWithDetails = () => {
         console.log('🔄 Mapeando produto:', {
           id: product.id,
           name: product.name,
-          category_id: product.category_id,
-          brand_id: product.brand_id,
-          categories: product.categories,
-          brands: product.brands
+          category: product.category,
+          brand: product.brand
         })
 
         return {
@@ -85,8 +81,8 @@ export const useProductsWithDetails = () => {
           sku: product.sku,
           sale_price: product.sale_price,
           stock: product.stock,
-          category: product.categories?.name || null,
-          brand: product.brands?.name || null,
+          category: product.category || null,
+          brand: product.brand || null,
           colors: product.colors || [],
           sizes: product.sizes || [],
           description: product.description
