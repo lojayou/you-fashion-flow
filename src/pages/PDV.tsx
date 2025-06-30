@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -367,7 +368,7 @@ export default function PDV() {
               )}
               {products && products.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-xs">Com estoque > 0: {products.filter(p => p.stock > 0).length}</p>
+                  <p className="text-xs">Com estoque {'>'} 0: {products.filter(p => p.stock > 0).length}</p>
                   <p className="text-xs">Com estoque = 0: {products.filter(p => p.stock === 0).length}</p>
                   <p className="text-xs">Sem categoria: {products.filter(p => !p.category_id).length}</p>
                   <p className="text-xs">Sem marca: {products.filter(p => !p.brand_id).length}</p>
