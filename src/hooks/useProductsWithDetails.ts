@@ -33,7 +33,7 @@ export const useProductsWithDetails = () => {
         console.log('📊 Total de produtos ativos na tabela:', productsCount)
       }
 
-      // Agora vamos buscar os produtos com relacionamentos
+      // Agora vamos buscar os produtos com relacionamentos usando !left para left joins
       console.log('🔍 Buscando produtos com detalhes de categoria e marca...')
       
       const { data, error } = await supabase
@@ -49,8 +49,8 @@ export const useProductsWithDetails = () => {
           description,
           category_id,
           brand_id,
-          categories(name),
-          brands(name)
+          categories!left(name),
+          brands!left(name)
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
