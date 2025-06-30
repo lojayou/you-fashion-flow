@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,7 @@ import { TimeFilter } from '@/components/TimeFilter'
 import { ProductViewDialog } from '@/components/ProductViewDialog'
 import { ProductEditDialog } from '@/components/ProductEditDialog'
 import { ProductCreateDialog } from '@/components/ProductCreateDialog'
+import { InfiniteScrollContainer } from '@/components/InfiniteScrollContainer'
 import { useProductsWithDetails } from '@/hooks/useProductsWithDetails'
 import { 
   Search, 
@@ -49,6 +51,7 @@ export default function Stock() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [displayLimit, setDisplayLimit] = useState(20)
 
   const { data: products = [], refetch } = useProductsWithDetails()
 
@@ -65,13 +68,13 @@ export default function Stock() {
     brand: product.brand || '',
     description: product.description || '',
     salePrice: product.sale_price,
-    costPrice: 0, // Not available in ProductWithDetails
+    costPrice: 0,
     stock: product.stock,
-    minStock: 5, // Default value
+    minStock: 5,
     size: product.size || '',
     color: product.color || '',
-    status: 'active' as const, // All products from useProductsWithDetails are active
-    featured: false, // Not available in ProductWithDetails
+    status: 'active' as const,
+    featured: false,
     createdAt: new Date().toISOString(),
     createdBy: 'Admin'
   }))
@@ -88,6 +91,13 @@ export default function Stock() {
 
     return matchesSearch && matchesCategory && matchesStatus
   })
+
+  const displayedProducts = filteredProducts.slice(0, displayLimit)
+  const hasMore = displayLimit < filteredProducts.length
+
+  const loadMore = () => {
+    setDisplayLimit(prev => prev + 20)
+  }
 
   const lowStockProducts = convertedProducts.filter(product => product.stock <= product.minStock && product.stock > 0)
   const outOfStockProducts = convertedProducts.filter(product => product.stock === 0)
@@ -247,20 +257,24 @@ export default function Stock() {
         </CardContent>
       </Card>
 
-      {/* Products List */}
+      {/* Products List with Infinite Scroll */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Produtos ({filteredProducts.length})</CardTitle>
           <CardDescription>Inventário de produtos da loja</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredProducts.length === 0 ? (
+          <InfiniteScrollContainer
+            hasMore={hasMore}
+            loadMore={loadMore}
+            className="space-y-4"
+          >
+            {displayedProducts.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 Nenhum produto encontrado com os filtros aplicados
               </p>
             ) : (
-              filteredProducts.map((product) => (
+              displayedProducts.map((product) => (
                 <div 
                   key={product.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -330,7 +344,7 @@ export default function Stock() {
                 </div>
               ))
             )}
-          </div>
+          </InfiniteScrollContainer>
         </CardContent>
       </Card>
 
